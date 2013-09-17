@@ -1,0 +1,6 @@
+*.app
+*.beam
+.erlang.mk.packages.v1
+README.html
+deps/
+rel/transeo/
