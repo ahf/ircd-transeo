@@ -40,8 +40,27 @@ start() ->
 
 -spec start(normal | {takeover, node()} | {failover, node()}, term()) -> {ok, pid()}.
 start(_, _) ->
-    transeo_sup:start_link().
+    case transeo_sup:start_link() of
+        {ok, _} = Result ->
+            start_listeners(transeo_config:listeners()),
+            Result;
+
+        {error, _} = Error ->
+            Error
+    end.
 
 -spec stop([]) -> ok.
 stop(_State) ->
+    ok.
+
+%% @doc Start TCP Listeners.
+-spec start_listeners([]) -> ok.
+start_listeners([{Name, Options} | Rest]) ->
+    Port = proplists:get_value(accept_port, Options),
+    Protocol = proplists:get_value(protocol, Options),
+    lager:info("Starting Listener for IRC server: ~s:~b (Protocol: ~p)", [Name, Port, Protocol]),
+    {ok, _} = ranch:start_listener(Name, 100, ranch_tcp, [{port, Port}], transeo_listener, [Name, Options]),
+    start_listeners(Rest);
+
+start_listeners([]) ->
     ok.
