@@ -25,10 +25,11 @@
 %%%
 %%% ----------------------------------------------------------------------------
 %%% @author Alexander Færøy <ahf@0x90.dk>
-%%% @doc RFC 1459 Utilities
+%%% @doc RFC 1459 Message Parser.
 %%% @end
 %%% ----------------------------------------------------------------------------
 -module(transeo_rfc1459).
+-behaviour(transeo_protocol_parser).
 
 %% API.
 -export([parse/1]).
@@ -39,9 +40,31 @@
 
 -include("transeo.hrl").
 
-%% @doc Try parsing an RFC 1459 line.
--spec parse(Data :: binary()) -> {ok, message()} | {error, term()}.
+%% @doc Parse a set of RFC 1459 lines.
+-spec parse(Data :: binary()) -> {ok, [message()], Chunk :: binary()} | {error, term()}.
 parse(Data) ->
+    parse_lines(Data, []).
+
+%% @private
+-spec parse_lines(Data :: binary(), Result :: [message()]) -> {ok, [message()], Chunk :: binary()} | {error, term()}.
+parse_lines(Data, Result) ->
+    case binary:split(Data, <<"\r\n">>) of
+        [Chunk] ->
+            {ok, lists:reverse(Result), Chunk};
+
+        [Line, Chunk] ->
+            case parse_line(Line) of
+                {ok, Message} ->
+                    parse_lines(Chunk, [Message | Result]);
+
+                {error, _} = Error ->
+                    Error
+            end
+    end.
+
+%% @private
+-spec parse_line(Line :: binary()) -> {ok, message()} | {error, term()}.
+parse_line(Data) ->
     parse_prefix(Data).
 
 %% @private
