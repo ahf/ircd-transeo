@@ -100,7 +100,7 @@ handle_info(timeout, #state { listener = ListenerPid, socket = Socket } = State)
 
 handle_info({tcp, Socket, Packet}, #state { socket = Socket, options = Options, continuation = Continuation } = State) ->
     Data = <<Continuation/binary, Packet/binary>>,
-    case parse(Data, Options) of
+    case decode(Data, Options) of
         {ok, Messages, NewContinuation} ->
             lists:foreach(fun (Message) ->
                         log(State, info, "P: ~s, C: ~s, A: ~p", [Message#message.prefix, Message#message.command, lists:map(fun binary_to_list/1, Message#message.parameters)])
@@ -108,7 +108,7 @@ handle_info({tcp, Socket, Packet}, #state { socket = Socket, options = Options, 
             {noreply, State#state { continuation = NewContinuation }};
 
         {error, Reason} = Error ->
-            log(State, error, "Parse Error: ~p", [Reason]),
+            log(State, error, "Decode Error: ~p", [Reason]),
             {stop, Error, State}
     end;
 
@@ -153,7 +153,7 @@ log(#state { name = Name }, LogLevel, Format, Arguments) ->
     lager:log(LogLevel, [{listener, Name}], "~s: " ++ Format, [Name | Arguments]).
 
 %% @private
--spec parse(Data :: binary(), Options :: proplists:proplist()) -> {ok, [message()], Chunk :: binary()} | {error, term()}.
-parse(Data, Options) ->
+-spec decode(Data :: binary(), Options :: proplists:proplist()) -> {ok, [message()], Chunk :: binary()} | {error, term()}.
+decode(Data, Options) ->
     WireProtocolModule = proplists:get_value(wire_protocol, Options),
-    apply(WireProtocolModule, parse, [Data]).
+    apply(WireProtocolModule, decode, [Data]).

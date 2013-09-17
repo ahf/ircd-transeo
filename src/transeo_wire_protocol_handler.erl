@@ -25,23 +25,24 @@
 %%%
 %%% ----------------------------------------------------------------------------
 %%% @author Alexander Færøy <ahf@0x90.dk>
-%%% @doc Protocol Parser Behaviour.
+%%% @doc Wire Protocol Behaviour.
 %%% @end
 %%% ----------------------------------------------------------------------------
--module(transeo_protocol_parser).
+-module(transeo_wire_protocol_handler).
 
 %% API.
 -export([behaviour_info/1]).
 
-%% @doc The behaviour of `transeo_protocol_parser'.
-%% An instance of the `transeo_protocol_parser' must have a `parse/1' function
+%% @doc The behaviour of `transeo_wire_protocol_handler'.
+%% An instance of the `transeo_wire_protocol_handler' must have a `decode/1' function
 %% that returns either:
 %%   {ok, Messages :: [message()], Chunk :: binary()}
 %%   {error, Reason :: term()}
+%% and an `encode/1' function that returns a binary().
 %% @end
 -spec behaviour_info(atom()) -> term().
 behaviour_info(callbacks) ->
-    [{parse, 1}];
+    [{decode, 1}, {encode, 1}];
 
 behaviour_info(_) ->
     undefined.

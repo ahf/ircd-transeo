@@ -25,14 +25,14 @@
 %%%
 %%% ----------------------------------------------------------------------------
 %%% @author Alexander Færøy <ahf@0x90.dk>
-%%% @doc RFC 1459 Message Parser.
+%%% @doc RFC 1459 Message Encoder and Decoder.
 %%% @end
 %%% ----------------------------------------------------------------------------
 -module(transeo_rfc1459).
--behaviour(transeo_protocol_parser).
+-behaviour(transeo_wire_protocol_handler).
 
 %% API.
--export([parse/1]).
+-export([encode/1, decode/1]).
 
 %% Types.
 -type message() :: transeo_types:message().
@@ -40,22 +40,33 @@
 
 -include("transeo.hrl").
 
-%% @doc Parse a set of RFC 1459 lines.
--spec parse(Data :: binary()) -> {ok, [message()], Chunk :: binary()} | {error, term()}.
-parse(Data) ->
-    parse_lines(Data, []).
+%% @doc Decode a set of RFC 1459 lines.
+-spec decode(Data :: binary()) -> {ok, [message()], Chunk :: binary()} | {error, term()}.
+decode(Data) ->
+    decode_lines(Data, []).
+
+%% @doc Encode a message to an iolist().
+-spec encode(Message :: message()) -> iolist().
+encode(#message { prefix = Prefix, command = Command, parameters = Parameters }) ->
+    case Prefix of
+        undefined ->
+            [Command, encode_parameters(Parameters), <<"\r\n">>];
+
+        _Otherwise ->
+            [<<$:, Prefix/binary, " ", Command/binary>>, encode_parameters(Parameters), <<"\r\n">>]
+    end.
 
 %% @private
--spec parse_lines(Data :: binary(), Result :: [message()]) -> {ok, [message()], Chunk :: binary()} | {error, term()}.
-parse_lines(Data, Result) ->
+-spec decode_lines(Data :: binary(), Result :: [message()]) -> {ok, [message()], Chunk :: binary()} | {error, term()}.
+decode_lines(Data, Result) ->
     case binary:split(Data, <<"\r\n">>) of
         [Chunk] ->
             {ok, lists:reverse(Result), Chunk};
 
         [Line, Chunk] ->
-            case parse_line(Line) of
+            case decode_line(Line) of
                 {ok, Message} ->
-                    parse_lines(Chunk, [Message | Result]);
+                    decode_lines(Chunk, [Message | Result]);
 
                 {error, _} = Error ->
                     Error
@@ -63,33 +74,33 @@ parse_lines(Data, Result) ->
     end.
 
 %% @private
--spec parse_line(Line :: binary()) -> {ok, message()} | {error, term()}.
-parse_line(Data) ->
-    parse_prefix(Data).
+-spec decode_line(Line :: binary()) -> {ok, message()} | {error, term()}.
+decode_line(Data) ->
+    decode_prefix(Data).
 
 %% @private
--spec parse_prefix(Data :: binary()) -> {ok, message()} | {error, term()}.
-parse_prefix(<<$:, Data/binary>>) ->
+-spec decode_prefix(Data :: binary()) -> {ok, message()} | {error, term()}.
+decode_prefix(<<$:, Data/binary>>) ->
     case binary:split(Data, <<" ">>) of
         [Prefix, Data2] ->
-            parse_command(Prefix, Data2);
+            decode_command(Prefix, Data2);
 
         _Otherwise ->
             {error, {invalid_data, Data}}
     end;
 
-parse_prefix(Data) ->
-    parse_command(undefined, Data).
+decode_prefix(Data) ->
+    decode_command(undefined, Data).
 
 %% @private
--spec parse_command(Prefix :: prefix(), Data :: binary()) -> {ok, message()} | {error, term()}.
-parse_command(Prefix, Data) ->
+-spec decode_command(Prefix :: prefix(), Data :: binary()) -> {ok, message()} | {error, term()}.
+decode_command(Prefix, Data) ->
     case binary:split(Data, <<" ">>) of
         [Command, ParameterData] ->
             {ok, #message {
                     prefix = Prefix,
                     command = Command,
-                    parameters = parse_parameters(ParameterData)
+                    parameters = decode_parameters(ParameterData)
                 } };
 
         [Command] ->
@@ -104,19 +115,19 @@ parse_command(Prefix, Data) ->
     end.
 
 %% @private
--spec parse_parameters(Data :: binary()) -> [binary()].
-parse_parameters(Data) ->
-    lists:reverse(parse_parameters(Data, [])).
+-spec decode_parameters(Data :: binary()) -> [binary()].
+decode_parameters(Data) ->
+    lists:reverse(decode_parameters(Data, [])).
 
 %% @private
--spec parse_parameters(Data :: binary(), Result :: [binary()]) -> [binary()].
-parse_parameters(<<$:, Parameter/binary>>, Result) ->
+-spec decode_parameters(Data :: binary(), Result :: [binary()]) -> [binary()].
+decode_parameters(<<$:, Parameter/binary>>, Result) ->
     [Parameter | Result];
 
-parse_parameters(Data, Result) ->
+decode_parameters(Data, Result) ->
     case binary:split(Data, <<" ">>) of
         [Parameter, ParameterData] ->
-            parse_parameters(ParameterData, [Parameter | Result]);
+            decode_parameters(ParameterData, [Parameter | Result]);
 
         [Parameter] ->
             [Parameter | Result];
@@ -124,3 +135,18 @@ parse_parameters(Data, Result) ->
         _Otherwise ->
             Result
     end.
+
+%% @private
+-spec encode_parameters(Parameters :: [binary()]) -> [binary()].
+encode_parameters(Parameters) ->
+    encode_parameters(Parameters, []).
+
+-spec encode_parameters(Parameters :: [binary()], Result :: [binary()]) -> [binary()].
+encode_parameters([Parameter], Result) ->
+    encode_parameters([], [<<" :", Parameter/binary>> | Result]);
+
+encode_parameters([Parameter | Parameters], Result) ->
+    encode_parameters(Parameters, [<<" ", Parameter/binary>> | Result]);
+
+encode_parameters([], Result) ->
+    lists:reverse(Result).
