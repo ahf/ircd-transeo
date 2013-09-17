@@ -1,0 +1,279 @@
+		     Ircd 2.11 server to server protocol
+
+Last modified: Mon Dec 31 02:03:59 CET 2001 jv
+               Tue Mar 23 12:32:33 MET 2004 chopin
+-------------------------------------------------------------------------
+
+I. Unique identifier
+------------------------------------------------------
+ Almost all resources connected to IRC network have their Unique ID
+ (except services). ID always starts with a digit and is made of
+ A-Z0-9 alphabet.
+
+ Server Unique Identifier - SID
+ -------------------------------
+  Unique three chars long identifier of server, which always begins
+  with a digit. SID is always 4 letters long for 2.11 servers.
+  For 2.10 servers, fake SIDs are generated in form of $<tok>
+  and are also 4 letters long. Such fake-SIDs works just like old 2.10 
+  tokens. This has advantage that we will be able to throw token code 
+  out at some point and also that we know which remote servers are 2.10 
+  ones(if not masked behind 2.10 sid). Also, it's a need, because otherwise 
+  we wouldn't be able to distinguish from token and SID in SERVER messages.
+
+ User Unique Identifier - UID
+ -------------------------------
+  Is generated from SID and Client ID. CID is server-unique identifier
+  begining with AAAAA. UID is always 9 letters long. (This may change
+  when we finally switch to longer nicknames.)
+
+ ID usage
+ -------------------------------
+ For server to server communcation, UID/SID is always used where possible,
+ but not as a source of numerics.
+ UID/SID is never send as source to user, unless specified otherwise.
+ UID is never allowed for users to be used as a target.
+
+II. Commands
+------------------------------------------------------
+ UID/SID as a source is always used for server to server communaction
+ when object has one. UID/SID is *never* send to users and *never*
+ accepted from users. "*" denotes new command in protocol.
+ <source> is the origin of this message. UID,SID,servername,nickname
+ or servicename.
+ - PASS <pass> <version> <flags> <linkopts>
+   	authentication and server version.
+	
+ - :<source> SERVER <servername> <hopcount> <sid> <version> :<info>
+   	in case source is missing, remote server is introducing itself to us.
+   	For 2.10 servers, fake sid is generated(see section I.a)
+	Version is same format as used in PASS command, ie 0210990100
+	And it's NOT present in initial SERVER message. If remote version
+	is unknown, 0 is sent.
+
+ * :<source> SMASK <sid> <version>
+    	introduces server behind mask. Masking server replaces SERVER 
+	message with SMASK, but keeps the source.
+	Version is in PASS-format version, ie 0210990100, 0 if we don't know.
+
+ - :<source> SQUIT <sid/name>
+	squits server/sid. Accepts SID from Oper.
+	
+ * :<source> EOB <sid> *( "," <sid>)
+	end of burst command, this command is flooded to whole network.
+	SID list contains all sids for which this EOB is valid.
+	
+ * :<source> ENCAP <target> :<data>
+ 	Generic data encapsculation. (Not yet decided or done.)
+ 	target can be comma separated list of SIDs or *.tld.
+	
+ * :<source> UNICK <nick> <uid> <username> <host> <ip> +<umode> :<realname>
+	introduction of new client, source is SID of the user's server.
+
+ - :<source> NJOIN <chan> :[@@|@] [+]<uid/nick> *( "," [@@|@] [+]<uid/nick>)
+	join to channel, both burst and not.
+	
+ - :<uidi/nick> NICK <newnick>
+	nich change
+	
+ -  NICK <nick> <hopcount> <user> <host> <compsid/token> +<umodes> :<realname>
+	introduction of 2.10 clients. Compatibility SID is used instead of
+	2.10-style token when talking to 2.11 servers. compsid is actually
+	sidtoi(SID).
+	
+ - :<source> KILL <uid/nick> :<path> "(" <comment> ")"
+	client kill. Source is servername or nickname(oper).
+	
+ * :<source> SAVE <uid> :<path>
+	client save after collision.
+
+ - :<source> CONNECT <server1> <port> [<server2>]
+
+ - :<source> SERVICE <servicename> <servicemask> <servicetype> :<info>
+ - SERVSET <mask>
+
+ - :<source> MODE [<uid|channel> <change>]
+	
+ - :<source> PRIVMSG <target> :<text>
+ - :<source> NOTICE  <target> :<text>
+ - :<source> SQUERY <target> :<text>
+ 	message delivery
+
+ - :<source> JOIN :<channel> *(","<channel>)
+ 	user joining to channel. (this is client-server command in 2.11 only;
+	it is kept, however, for compatibility with 2.10)
+
+ - :<source> PART <channel> :<reason>
+ 	user parting a channel.
+
+ - :<source> KICK <chan> :<uid...>
+
+ - :<source> TRACE <sid|server>
+	Trace allows to specifiy SID from user if source is Oper.
+	
+ - :<source> TOPIC <channel> :[<topic>]
+
+ - :<source> INVITE <target> <channel>
+
+ - :<source> WALLOPS :<text>
+
+ - :<source> PING <target> <server>
+ - :<source> PONG <target> <target2>
+
+ - :<source> QUIT :<reason>
+ 	user leaving irc.
+
+ - :<source> WHOIS <uid|server> <uid>
+ - :<source> WHOWAS <nick> *("," <nick>) <count> <target>
+
+ - :<source> LIST <channel> *("," <channel>) <target>
+
+ - :<source> LUSERS <servermask> <target>
+
+ - :<source> TIME <target>
+
+ - :<source> VERSION <target>
+ - :<source> STATS <flag> <target>
+
+ - :<source> LINKS [<target>] <mask>
+ - :<source> ADMIN <target>
+
+ - :<source> USERS <target>
+
+ - :<source> SUMMON <user> <target>
+
+ - :<source> INFO <target>
+
+ - :<source> MOTD <target>
+ - USERHOST <nick> *("," <nick>)
+
+ - OPER <nick> <password>
+ - HELP
+ - UMODE <nick> <change>
+ - ERROR :<text>
+ - AWAY :<text>
+ - ISON :<nick> *("," <nick>)
+ - WHO <mask> [o]
+ - RECONNECT
+ - CLOSE
+ - HAZH <flag>
+ - REHASH <flag>
+ - DNS <flag>
+ - RESTART <flag>
+ - DIE
+
+III. 2.10 compatibility
+-----------------------------------------------------------------------
+ - Fake SIDs
+   for 2.10 servers, we generate fake SID. Two digits from ID alphabet 
+   are added to SID of server to which is 2.10 connected to. 
+   example:
+   	2.11 server - 42U. First 2.10 server connected will get SID
+	42UAA.
+ - EOB
+   End Of Burst is emulated for 2.10 servers by sending PING and waiting
+   for PONG.( or no such server from <2.10.3p2, in case of masks)
+
+IV. Example network
+-----------------------------------------------------------------------
+
+ Example network topology.
+ --------------------------
+ servers:
+                  (*.de)   ---------------  (*.cz)
+              belwue.de - 49B (2.11)     irc.uhk.cz - 42U (2.11)
+	         |                         |
+                 |- freenet.de - 49F       |-- irc.felk.cvut.cz - 42F (2.11)
+                 |                         |
+                 \- tu-ilmenau.de (2.10)   \-  irc.cis.vutbr.cz (2.10)
+
+ users:
+	user Khu is on  irc.uhk.cz           has uid 42UAAAAAA
+	user Tuvc is on irc.felk.cvut.cz     has uid 42FAAAAAA
+	user Sic is on  irc.cis.vutbr.cz and doesn't have an uid
+	user NetFree is on freenet.de and has uid 49FAAAAAAA
+	user Uanem is on tu-ilmenau and doesn't have any uid.
+
+	all users are on #test.
+	
+ Now we will show what will happen in some example cases.
+ Note that examples doesn't follow each other and are completely
+ separate. Starting point is that everything is connected together
+ and users are on their servers.
+
+ 1) *.de and *.cz were split and now they are connecting together.
+
+    *.de - belwue.de sees:
+    	SERVER *.cz 1 42U :UHK server
+    	:42U SMASK 42F 2
+	:42U SMASK $AA 2
+	:42U UNICK Khu AAAAAA user server.uhk.cz 127.0.0.1 +iw :Client on uhk.
+	:42F UNICK Tuvc AAAAAA root cs.cvut.cz 195.1.1.1 +iw :Client on cvut.
+	NICK Sic 2 admin box.vutbr.cz $AA +iw :Client on cis.
+	:42U NJOIN #test :@42UAAAAAA,@42FAAAAAA,+Sic
+	:42U EOB 42U,42F,$AA
+	
+    *.cz (irc.uhk.cz) sees:
+	SERVER *.de 1 49B :Belwue server.
+	:49B SMASK 49F 2
+	:49B SMASK $AA 2
+	:49F UNICK NetFree AAAAAA noc noc.mcbone.net 1.1.1.1 +w :freenet client
+	NICK Uanem 2 guest x.tu-ilmenau.de $AA + :Client on Ilmenau
+	:49B NJOIN #test :@49FAAAAAA,Uanem
+	:49B EOB 49B,42F,$AA
+	
+    irc.felk.cvut.cz sees:
+    	- similar to above, except hopcount is increased and SERVER message prefixed.
+
+    irc.cis.vutbr.cz sees:
+    	:irc.uhk.cz SERVER *.de 2 sidtoi(42B) :Belwue server.
+	NICK NetFree 3 noc noc.mcbone.net sidtoi(49B) +w :Client on freenet
+	NICK Uanem 3 guest x.tu-ilmenau.de sidtoi(49B) + :Client on Ilmenau
+	:irc.uhk.cz NJOIN #test :@NetFree,Uanem
+
+ 2) irc.cis.vutbr.cz was split and is now connecting.
+
+   - irc.uhk.cz generates "fake" SID for irc.cis.vutbr.cz
+     and propagate server.
+
+     irc.felk.cvut.cz gets:
+     	:42U SERVER irc.cis.vutbr.cz 2 $AA :VUTBR server
+	NICK Sic $AA admin box.vutbr.cz 2 +iw :Client on cis.
+	:irc.cis.vutbr.cz NJOIN #test :+Sic
+	:42U EOB $AA
+	
+     *.de (belwue.de) gets:
+     	:42U SMASK $AA
+     	NICK Sic $AA admin box.vutbr.cz 2 +iw :Client on cis.
+	:irc.cis.vutbr.cz NJOIN #test :+Sic
+	:42U EOB $AA
+
+     irc.cis.vutbr.cz gets:
+     	SERVER irc.uhk.cz 1 sidtoi(42U) :UHK server
+	:irc.uhk.cz SERVER irc.felk.cvut.cz 2 sidtoi(42F) :FELK server
+	:irc.uhk.cz SERVER *.de 2 sidtoi(49B) :Belwue server.
+	NICK Khu 1 user server.uhk.cz 1 +iw :Client on uhk.
+	NICK Tuvc 2 root cs.cvut.cz sidtoi(42F) +iw :Client on cvut
+	NICK NetFree 3 noc noc.mcbone.net sidtoi(49B) +w :Client on freenet
+			    .^--- ! it's SID of belwue.de(*.de)!
+	NICK Uanem 3 guest x.tu-ilmenau.de sidtoi(49B) + :Client on Ilmenau
+	:irc.uhk.cz NJOIN #test :@Khu,@Tuvc,@NetFree,Uanem
+
+	tu-ilmenau.de:
+     	NICK Sic sidtoi(42U) admin box.vutbr.cz 3 +iw :Client on cis.
+	:irc.cis.vutbr.cz NJOIN #test :+Sic
+
+
+  3) irc.felk.cvut.cz splits from irc.uhk.cz
+
+     irc.cis.vutbr.cz:
+     	:irc.uhk.cz SQUIT irc.felk.cvut.cz :Ping timeout.
+	
+     *.de (belwue.de)
+     	:42U SQUIT 42F :irc.uhk.cz irc.felk.cvut.cz
+	^^ - since we know it's internal split, it's not sent to &SERVERS.
+
+    tu-ilmenau.de sees:
+	:Tcuv QUIT :irc.uhk.cz irc.felk.cvut.cz.
+	
+ 
