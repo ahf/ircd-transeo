@@ -155,5 +155,5 @@ log(#state { name = Name }, LogLevel, Format, Arguments) ->
 %% @private
 -spec parse(Data :: binary(), Options :: proplists:proplist()) -> {ok, [message()], Chunk :: binary()} | {error, term()}.
 parse(Data, Options) ->
-    ParserModule = proplists:get_value(parser, Options),
-    apply(ParserModule, parse, [Data]).
+    WireProtocolModule = proplists:get_value(wire_protocol, Options),
+    apply(WireProtocolModule, parse, [Data]).
