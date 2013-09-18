@@ -33,7 +33,7 @@
 -behaviour(ranch_protocol).
 
 %% API.
--export([]).
+-export([authenticate/2]).
 
 %% Our `gen_server' callbacks.
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
@@ -61,27 +61,42 @@
         listener :: pid() | undefined,
 
         %% Socket.
-        socket :: inet:socket() | undefined
+        socket :: inet:socket() | undefined,
+
+        %% Protocol FSM.
+        protocol_fsm :: pid()
     }).
 
 -define(SERVER, ?MODULE).
 
 -include("transeo.hrl").
 
+%% @doc Try to authenticate with a given password.
+-spec authenticate(ListenerPid :: pid(), Password :: string()) -> boolean().
+authenticate(ListenerPid, Password) ->
+    gen_server:call(ListenerPid, {authenticate, Password}).
+
 %% @private
 -spec init([term()]) -> {ok, State :: term()} | {ok, State :: term(), Timeout :: non_neg_integer()}.
 init([ListenerPid, Socket, [Name, Options]]) ->
     %% Note: See handle_info(timeout, ...) for final initialization.
+    {ok, ProtocolFSM} = create_protocol_fsm(Options),
     {ok, #state {
             name = Name,
             options = Options,
             inbound = true,
             listener = ListenerPid,
-            socket = Socket
+            socket = Socket,
+            protocol_fsm = ProtocolFSM
         }, 0}.
 
 %% @private
 -spec handle_call(Request :: term(), From :: pid(), State :: term()) -> {reply, Reply :: term(), NewState :: term()}.
+handle_call({authenticate, Password}, _From, #state { options = Options } = State) ->
+    AcceptPassword = proplists:get_value(accept_password, Options),
+    Reply = AcceptPassword =:= Password,
+    {reply, Reply, State};
+
 handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.
@@ -103,7 +118,8 @@ handle_info({tcp, Socket, Packet}, #state { socket = Socket, options = Options, 
     case decode(Data, Options) of
         {ok, Messages, NewContinuation} ->
             lists:foreach(fun (Message) ->
-                        log(State, info, "-> ~s ~p (~s)", [Message#message.command, lists:map(fun binary_to_list/1, Message#message.parameters), Message#message.prefix])
+                        log(State, info, "-> ~s ~p (~s)", [Message#message.command, lists:map(fun binary_to_list/1, Message#message.parameters), Message#message.prefix]),
+                        dispatch(Message, State)
                 end, Messages),
             {noreply, State#state { continuation = NewContinuation }};
 
@@ -157,3 +173,15 @@ log(#state { name = Name }, LogLevel, Format, Arguments) ->
 decode(Data, Options) ->
     WireProtocolModule = proplists:get_value(wire_protocol, Options),
     apply(WireProtocolModule, decode, [Data]).
+
+%% @private
+-spec create_protocol_fsm(Options :: proplists:proplist()) -> pid().
+create_protocol_fsm(Options) ->
+    Protocol = proplists:get_value(protocol, Options),
+    apply(Protocol, start_link, [self()]).
+
+%% @private
+-spec dispatch(Message :: message(), State :: term()) -> ok.
+dispatch(Message, #state { protocol_fsm = ProtocolFSM, options = Options }) ->
+    Protocol = proplists:get_value(protocol, Options),
+    apply(Protocol, dispatch, [ProtocolFSM, Message]).
