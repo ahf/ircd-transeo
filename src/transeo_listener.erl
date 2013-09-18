@@ -33,7 +33,7 @@
 -behaviour(ranch_protocol).
 
 %% API.
--export([authenticate/2]).
+-export([authenticate/2, send/2, disconnect/1]).
 
 %% Our `gen_server' callbacks.
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
@@ -76,11 +76,21 @@
 authenticate(ListenerPid, Password) ->
     gen_server:call(ListenerPid, {authenticate, Password}).
 
+%% @doc Send raw message to the given server.
+-spec send(ListenerPid :: pid(), Message :: iolist()) -> ok.
+send(ListenerPid, Message) ->
+    gen_server:cast(ListenerPid, {send, Message}).
+
+%% @doc Disconnect the given server.
+-spec disconnect(ListenerPid :: pid()) -> ok.
+disconnect(ListenerPid) ->
+    gen_server:cast(ListenerPid, disconnect).
+
 %% @private
 -spec init([term()]) -> {ok, State :: term()} | {ok, State :: term(), Timeout :: non_neg_integer()}.
 init([ListenerPid, Socket, [Name, Options]]) ->
     %% Note: See handle_info(timeout, ...) for final initialization.
-    {ok, ProtocolFSM} = create_protocol_fsm(Options),
+    {ok, ProtocolFSM} = create_protocol_fsm(Name, Options),
     {ok, #state {
             name = Name,
             options = Options,
@@ -103,6 +113,20 @@ handle_call(_Request, _From, State) ->
 
 %% @private
 -spec handle_cast(Request :: term(), State :: term()) -> {noreply, NewState :: term()}.
+handle_cast({send, Message}, #state { socket = Socket } = State) ->
+    case gen_tcp:send(Socket, Message) of
+        ok ->
+            {noreply, State};
+
+        {error, Reason} ->
+            log(State, error, "TCP Error: ~p", [Reason]),
+            {stop, normal, State}
+    end;
+
+handle_cast(disconnect, State) ->
+    log(State, info, "Disconnecting"),
+    {stop, normal, State};
+
 handle_cast(_Request, State) ->
     {noreply, State}.
 
@@ -175,10 +199,10 @@ decode(Data, Options) ->
     apply(WireProtocolModule, decode, [Data]).
 
 %% @private
--spec create_protocol_fsm(Options :: proplists:proplist()) -> pid().
-create_protocol_fsm(Options) ->
+-spec create_protocol_fsm(Name :: string(), Options :: proplists:proplist()) -> pid().
+create_protocol_fsm(Name, Options) ->
     Protocol = proplists:get_value(protocol, Options),
-    apply(Protocol, start_link, [self()]).
+    apply(Protocol, start_link, [self(), Name]).
 
 %% @private
 -spec dispatch(Message :: message(), State :: term()) -> ok.

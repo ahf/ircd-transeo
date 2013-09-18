@@ -32,7 +32,7 @@
 -behaviour(gen_fsm).
 
 %% API.
--export([start_link/1, dispatch/2]).
+-export([start_link/2, dispatch/2]).
 
 %% Our `gen_fsm' states.
 -export([pass/2, capab/2]).
@@ -44,6 +44,10 @@
 -type message() :: transeo_types:message().
 
 -record(state, {
+        %% Same as the name in the listener.
+        name :: string(),
+
+        %% Our listener.
         listener :: pid()
     }).
 
@@ -52,9 +56,9 @@
 -include("transeo.hrl").
 
 %% @doc Start Ratbox Protocol FSM.
--spec start_link(ListenerPid :: pid()) -> {ok, pid()} | ignore | {error, term()}.
-start_link(ListenerPid) ->
-    gen_fsm:start_link(?SERVER, [ListenerPid], []).
+-spec start_link(ListenerPid :: pid(), Name :: string()) -> {ok, pid()} | ignore | {error, term()}.
+start_link(ListenerPid, Name) ->
+    gen_fsm:start_link(?SERVER, [ListenerPid, Name], []).
 
 %% @doc Dispatch a given message to the FSM.
 -spec dispatch(Pid :: pid(), Message :: message()) -> ok.
@@ -69,11 +73,11 @@ dispatch(Pid, Message) ->
 pass({dispatch, #message { command = <<"PASS">>, parameters = [Password, <<"TS">>, <<"6">>, _Sid] }}, #state { listener = Listener } = State) ->
     case transeo_listener:authenticate(Listener, binary_to_list(Password)) of
         true ->
-            lager:info("Succesfully authenticated"),
+            log(State, info, "Succesfully authenticated"),
             {next_state, capab, State};
 
         false ->
-            lager:warning("Unable to authenticate remote server"),
+            log(State, warning, "Authentication failed"),
             {stop, normal, State}
     end;
 
@@ -93,8 +97,9 @@ capab({dispatch, _Message}, State) ->
 
 %% @private
 -spec init([term()]) -> {ok, StateName :: atom(), State :: term()}.
-init([ListenerPid]) ->
+init([ListenerPid, Name]) ->
     {ok, pass, #state {
+            name = Name,
             listener = ListenerPid
         }}.
 
@@ -123,3 +128,13 @@ terminate(_Reason, _StateName, _State) ->
 -spec code_change(OldVersion :: term(), StateName :: atom(), State :: term(), Extra :: term()) -> {ok, StateName :: atom(), State :: term()}.
 code_change(_OldVersion, StateName, State, _Extra) ->
     {ok, StateName, State}.
+
+%% @private
+-spec log(State :: term(), LogLevel :: atom(), Format :: string()) -> ok.
+log(State, LogLevel, Format) ->
+    log(State, LogLevel, Format, []).
+
+%% @private
+-spec log(State :: term(), LogLevel :: atom(), Format :: string(), Arguments :: [term()]) -> ok.
+log(#state { name = Name }, LogLevel, Format, Arguments) ->
+    lager:log(LogLevel, [{ratbox_fsm, Name}], "~s: " ++ Format, [Name | Arguments]).
