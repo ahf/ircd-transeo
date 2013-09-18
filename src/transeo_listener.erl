@@ -103,7 +103,7 @@ handle_info({tcp, Socket, Packet}, #state { socket = Socket, options = Options, 
     case decode(Data, Options) of
         {ok, Messages, NewContinuation} ->
             lists:foreach(fun (Message) ->
-                        log(State, info, "P: ~s, C: ~s, A: ~p", [Message#message.prefix, Message#message.command, lists:map(fun binary_to_list/1, Message#message.parameters)])
+                        log(State, info, "-> ~s ~p (~s)", [Message#message.command, lists:map(fun binary_to_list/1, Message#message.parameters), Message#message.prefix])
                 end, Messages),
             {noreply, State#state { continuation = NewContinuation }};
 
