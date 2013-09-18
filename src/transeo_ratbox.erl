@@ -32,7 +32,7 @@
 -behaviour(gen_fsm).
 
 %% API.
--export([start_link/2, dispatch/2]).
+-export([start_link/3, dispatch/2]).
 
 %% Our `gen_fsm' states.
 -export([pass/2, capab/2]).
@@ -47,6 +47,9 @@
         %% Same as the name in the listener.
         name :: string(),
 
+        %% Same as the options in the listener.
+        options :: proplists:proplist(),
+
         %% Our listener.
         listener :: pid()
     }).
@@ -56,9 +59,9 @@
 -include("transeo.hrl").
 
 %% @doc Start Ratbox Protocol FSM.
--spec start_link(ListenerPid :: pid(), Name :: string()) -> {ok, pid()} | ignore | {error, term()}.
-start_link(ListenerPid, Name) ->
-    gen_fsm:start_link(?SERVER, [ListenerPid, Name], []).
+-spec start_link(ListenerPid :: pid(), Name :: string(), Options :: proplists:proplist()) -> {ok, pid()} | ignore | {error, term()}.
+start_link(ListenerPid, Name, Options) ->
+    gen_fsm:start_link(?SERVER, [ListenerPid, Name, Options], []).
 
 %% @doc Dispatch a given message to the FSM.
 -spec dispatch(Pid :: pid(), Message :: message()) -> ok.
@@ -70,8 +73,8 @@ dispatch(Pid, Message) ->
 %% yet to authorize itself.
 %% The expected IRC message is: "PASS".
 -spec pass({dispatch, Message :: message()}, State :: term()) -> {next_state, StateName :: atom(), State :: term()} | {stop, Reason :: term(), State :: term()}.
-pass({dispatch, #message { command = <<"PASS">>, parameters = [Password, <<"TS">>, <<"6">>, _Sid] }}, #state { listener = Listener } = State) ->
-    case transeo_listener:authenticate(Listener, binary_to_list(Password)) of
+pass({dispatch, #message { command = <<"PASS">>, parameters = [Password, <<"TS">>, <<"6">>, _Sid] }}, #state { options = Options } = State) ->
+    case authenticate(Options, binary_to_list(Password)) of
         true ->
             log(State, info, "Succesfully authenticated"),
             {next_state, capab, State};
@@ -97,10 +100,11 @@ capab({dispatch, _Message}, State) ->
 
 %% @private
 -spec init([term()]) -> {ok, StateName :: atom(), State :: term()}.
-init([ListenerPid, Name]) ->
+init([ListenerPid, Name, Options]) ->
     {ok, pass, #state {
             name = Name,
-            listener = ListenerPid
+            listener = ListenerPid,
+            options = Options
         }}.
 
 %% @private
@@ -138,3 +142,9 @@ log(State, LogLevel, Format) ->
 -spec log(State :: term(), LogLevel :: atom(), Format :: string(), Arguments :: [term()]) -> ok.
 log(#state { name = Name }, LogLevel, Format, Arguments) ->
     lager:log(LogLevel, [{ratbox_fsm, Name}], "~s: " ++ Format, [Name | Arguments]).
+
+%% @private
+-spec authenticate(Options :: proplists:proplist(), Password :: string()) -> boolean().
+authenticate(Options, Password) ->
+    AcceptPassword = proplists:get_value(accept_password, Options),
+    AcceptPassword =:= Password.
