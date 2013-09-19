@@ -31,10 +31,13 @@
 -module(transeo_ratbox_messages).
 
 %% API.
--export([pass/2, capab/1, server/3]).
+-export([pass/2, capab/1, server/3, svinfo/1]).
 
 %% Types.
 -type ratbox_capability() :: transeo_types:ratbox_capability().
+
+-define(TS_CURRENT, 6).
+-define(TS_MIN, 6).
 
 %% @doc
 %% Create PASS message.
@@ -53,3 +56,9 @@ capab(Capabilities) ->
 -spec server(Hostname :: string(), HopCount :: integer(), Description :: string()) -> iolist().
 server(Hostname, HopCount, Description) ->
     io_lib:format("SERVER ~s ~b :~s", [Hostname, HopCount, Description]).
+
+%% @doc
+%% Create SVINFO message.
+-spec svinfo(Timestamp :: non_neg_integer()) -> iolist().
+svinfo(Timestamp) ->
+    io_lib:format("SVINFO ~b ~b 0 :~b", [?TS_CURRENT, ?TS_MIN, Timestamp]).
