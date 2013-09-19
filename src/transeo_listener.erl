@@ -129,6 +129,7 @@ handle_info(timeout, #state { listener = ListenerPid, socket = Socket } = State)
     {noreply, State};
 
 handle_info({tcp, Socket, Packet}, #state { socket = Socket, options = Options, continuation = Continuation } = State) ->
+    ack_socket(Socket),
     Data = <<Continuation/binary, Packet/binary>>,
     case decode(Data, Options) of
         {ok, Messages, NewContinuation} ->
