@@ -31,10 +31,19 @@
 -module(transeo_ratbox_messages).
 
 %% API.
--export([pass/2]).
+-export([pass/2, capab/1]).
+
+%% Types.
+-type ratbox_capability() :: transeo_types:ratbox_capability().
 
 %% @doc
 %% Create PASS message.
 -spec pass(Password :: string(), Sid :: string()) -> iolist().
 pass(Password, Sid) ->
     io_lib:format("PASS ~s TS 6 :~s", [Password, Sid]).
+
+%% @doc
+%% Create CAPAB message.
+-spec capab(Capabilities :: [ratbox_capability()]) -> iolist().
+capab(Capabilities) ->
+    [<<"CAPAB :">>, transeo_ratbox_utilities:encode_capabilities(Capabilities)].

@@ -31,7 +31,7 @@
 -module(transeo_types).
 
 %% Types.
--export_type([message/0, prefix/0, client_configuration/0]).
+-export_type([message/0, prefix/0, client_configuration/0, ratbox_capability/0]).
 
 -include("transeo.hrl").
 
@@ -40,3 +40,5 @@
 -type prefix() :: undefined | binary().
 
 -type client_configuration() :: [].
+
+-type ratbox_capability() :: capability_qs | capability_ex | capability_chw | capability_ie | capability_gln | capability_knock | capability_zip | capability_tb | capability_encap | capability_services | capability_rsfnc | capability_save | capability_savets_100.

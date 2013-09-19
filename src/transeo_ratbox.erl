@@ -42,6 +42,7 @@
 
 %% Types.
 -type message() :: transeo_types:message().
+-type ratbox_capability() :: transeo_types:ratbox_capability().
 
 -record(state, {
         %% Same as the name in the listener.
@@ -51,7 +52,10 @@
         options :: proplists:proplist(),
 
         %% Our listener.
-        listener :: pid()
+        listener :: pid(),
+
+        %% Capabilities.
+        capabilities = [] :: [ratbox_capability()]
     }).
 
 -define(SERVER, ?MODULE).
@@ -93,8 +97,11 @@ pass({dispatch, _Message}, State) ->
 %% Negotiate capabilities.
 %% The expected IRC message is: "CAPAB".
 -spec capab({dispatch, Message :: message()}, State :: term()) -> {next_state, StateName :: atom(), State :: term()} | {stop, Reason :: term(), State :: term()}.
-capab({dispatch, #message { command = <<"CAPAB">>, parameters = [_Capabilities] }}, State) ->
-    {next_state, capab, State};
+capab({dispatch, #message { command = <<"CAPAB">>, parameters = [RawCapabilities] }}, State) ->
+    Capabilities = transeo_ratbox_utilities:decode_capabilities(RawCapabilities),
+    log(State, info, "Capabilities: ~p", [Capabilities]),
+    send(State, transeo_ratbox_messages:capab(Capabilities)),
+    {next_state, capab, State#state { capabilities = Capabilities }};
 
 capab({dispatch, _Message}, State) ->
     {stop, normal, State}.
