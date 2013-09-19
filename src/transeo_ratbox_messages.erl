@@ -31,7 +31,7 @@
 -module(transeo_ratbox_messages).
 
 %% API.
--export([pass/2, capab/1, server/3, svinfo/1]).
+-export([pass/2, capab/1, server/3, svinfo/1, ping/1, pong/1]).
 
 %% Types.
 -type ratbox_capability() :: transeo_types:ratbox_capability().
@@ -62,3 +62,15 @@ server(Hostname, HopCount, Description) ->
 -spec svinfo(Timestamp :: non_neg_integer()) -> iolist().
 svinfo(Timestamp) ->
     io_lib:format("SVINFO ~b ~b 0 :~b", [?TS_CURRENT, ?TS_MIN, Timestamp]).
+
+%% @doc
+%% Create PING message.
+-spec ping(Data :: string()) -> iolist().
+ping(Data) ->
+    io_lib:format("PING :~s", [Data]).
+
+%% @doc
+%% Create PONG message.
+-spec pong(Data :: string()) -> iolist().
+pong(Data) ->
+    io_lib:format("PONG :~s", [Data]).
