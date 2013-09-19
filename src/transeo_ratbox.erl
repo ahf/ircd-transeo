@@ -77,6 +77,7 @@ pass({dispatch, #message { command = <<"PASS">>, parameters = [Password, <<"TS">
     case authenticate(Options, binary_to_list(Password)) of
         true ->
             log(State, info, "Succesfully authenticated"),
+            send(State, transeo_ratbox_messages:pass(password(State), "00X")),
             {next_state, capab, State};
 
         false ->
