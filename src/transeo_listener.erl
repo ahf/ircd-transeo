@@ -104,6 +104,7 @@ handle_call(_Request, _From, State) ->
 %% @private
 -spec handle_cast(Request :: term(), State :: term()) -> {noreply, NewState :: term()}.
 handle_cast({send, Message}, #state { socket = Socket } = State) ->
+    log(State, info, "<- ~s", [Message]),
     case gen_tcp:send(Socket, Message) of
         ok ->
             {noreply, State};
@@ -132,7 +133,7 @@ handle_info({tcp, Socket, Packet}, #state { socket = Socket, options = Options, 
     case decode(Data, Options) of
         {ok, Messages, NewContinuation} ->
             lists:foreach(fun (Message) ->
-                        log(State, info, "-> ~s ~p (~s)", [Message#message.command, lists:map(fun binary_to_list/1, Message#message.parameters), Message#message.prefix]),
+                        log(State, info, "-> ~s", [transeo_message:raw_line(Message)]),
                         dispatch(Message, State)
                 end, Messages),
             {noreply, State#state { continuation = NewContinuation }};
