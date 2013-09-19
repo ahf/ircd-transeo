@@ -35,7 +35,7 @@
 -export([start_link/3, dispatch/2]).
 
 %% Our `gen_fsm' states.
--export([normal/2]).
+-export([pass/2, server/2, burst/2, normal/2]).
 
 %% Our `gen_fsm' callbacks.
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3, terminate/3, code_change/4]).
@@ -51,7 +51,13 @@
         options :: proplists:proplist(),
 
         %% Our listener.
-        listener :: pid()
+        listener :: pid(),
+
+        %% The version (See RFC 2813).
+        version = <<>> :: binary(),
+
+        %% The flags (See RFC 2813).
+        flags = <<>> :: binary()
     }).
 
 -define(SERVER, ?MODULE).
@@ -69,6 +75,54 @@ dispatch(Pid, Message) ->
     gen_fsm:send_event(Pid, {dispatch, Message}).
 
 %% @private
+%% This state represents the initial state whereby the connecting server have
+%% yet to authorize itself.
+%% The expected IRC message is: "PASS".
+-spec pass({dispatch, Message :: message()}, State :: term()) -> {next_state, StateName :: atom(), State :: term()} | {stop, Reason :: term(), State :: term()}.
+pass({dispatch, #message { command = <<"PASS">>, parameters = [Password, Version, Flags, <<"P">>] }}, #state { options = Options } = State) ->
+    case authenticate(Options, binary_to_list(Password)) of
+        true ->
+            send(State, transeo_ircd_messages:pass(password(State), Version, Flags)),
+            {next_state, server, State#state { version = Version, flags = Flags }};
+
+        false ->
+            log(State, warning, "Authentication failed"),
+            {stop, normal, State}
+    end;
+
+pass({dispatch, _Message}, State) ->
+    {stop, normal, State}.
+
+%% @private
+%% Remote server information.
+%% The expected IRC message is: "SERVER".
+-spec server({dispatch, Message :: message()}, State :: term()) -> {next_state, StateName :: atom(), State :: term()} | {stop, Reason :: term(), State :: term()}.
+server({dispatch, #message { command = <<"SERVER">>, parameters = [_Hostname, <<"1">>, _Sid, _Description] }}, State) ->
+    send(State, transeo_ircd_messages:server(transeo_config:name(), 1, <<"000X">>, transeo_config:description())),
+    send(State, transeo_ircd_messages:end_of_burst(<<"000X">>)),
+    {next_state, burst, State};
+
+server({dispatch, _Message}, State) ->
+    {stop, normal, State}.
+
+%% @private
+%% Burst mode.
+-spec burst({dispatch, Message :: message()}, State :: term()) -> {next_state, StateName :: atom(), State :: term()} | {stop, Reason :: term(), State :: term()}.
+burst({dispatch, #message { command = <<"EOB">> }}, State) ->
+    log(State, info, "End of Burst"),
+    send(State, transeo_ircd_messages:end_of_burst_ack(<<"000X">>)),
+    {next_state, normal, State};
+
+burst({dispatch, #message { command = <<"UNICK">> }}, State) ->
+    {next_state, burst, State};
+
+burst({dispatch, #message { command = <<"NJOIN">> }}, State) ->
+    {next_state, burst, State};
+
+burst({dispatch, _Message}, State) ->
+    {stop, normal, State}.
+
+%% @private
 %% Normal state after handshake + burst.
 -spec normal({dispatch, Message :: message()}, State :: term()) -> {next_state, StateName :: atom(), State :: term()} | {stop, Reason :: term(), State :: term()}.
 normal({dispatch, #message { command = <<"PING">>, parameters = [Value] }}, State) ->
@@ -81,7 +135,7 @@ normal({dispatch, _Message}, State) ->
 %% @private
 -spec init([term()]) -> {ok, StateName :: atom(), State :: term()}.
 init([ListenerPid, Name, Options]) ->
-    {ok, normal, #state {
+    {ok, pass, #state {
             name = Name,
             listener = ListenerPid,
             options = Options
