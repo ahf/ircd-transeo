@@ -105,7 +105,7 @@ handle_call(_Request, _From, State) ->
 -spec handle_cast(Request :: term(), State :: term()) -> {noreply, NewState :: term()}.
 handle_cast({send, Message}, #state { socket = Socket } = State) ->
     log(State, info, "<- ~s", [Message]),
-    case gen_tcp:send(Socket, Message) of
+    case gen_tcp:send(Socket, [Message, <<"\r\n">>]) of
         ok ->
             {noreply, State};
 
