@@ -31,7 +31,7 @@
 -module(transeo_ratbox_messages).
 
 %% API.
--export([pass/2, capab/1]).
+-export([pass/2, capab/1, server/3]).
 
 %% Types.
 -type ratbox_capability() :: transeo_types:ratbox_capability().
@@ -47,3 +47,9 @@ pass(Password, Sid) ->
 -spec capab(Capabilities :: [ratbox_capability()]) -> iolist().
 capab(Capabilities) ->
     [<<"CAPAB :">>, transeo_ratbox_utilities:encode_capabilities(Capabilities)].
+
+%% @doc
+%% Create SERVER message.
+-spec server(Hostname :: string(), HopCount :: integer(), Description :: string()) -> iolist().
+server(Hostname, HopCount, Description) ->
+    io_lib:format("SERVER ~s ~b :~s", [Hostname, HopCount, Description]).
