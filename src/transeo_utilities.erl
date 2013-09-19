@@ -31,7 +31,7 @@
 -module(transeo_utilities).
 
 %% API.
--export([intersperse/2]).
+-export([intersperse/2, timestamp/0]).
 
 %% @doc Intersperse element between the elements of the
 %% list.
@@ -45,3 +45,8 @@ intersperse(_, [X]) ->
 intersperse(Element, [X | Rest]) ->
     [X, Element | intersperse(Element, Rest)].
 
+%% @doc Return UNIX epoch timestamp.
+-spec timestamp() -> non_neg_integer().
+timestamp() ->
+    {MegaSeconds, Seconds, _MicroSeconds} = os:timestamp(),
+    MegaSeconds * 1000000 + Seconds.
