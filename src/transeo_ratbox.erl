@@ -125,6 +125,11 @@ svinfo({dispatch, #message { command = <<"SVINFO">> }}, State) ->
     send(State, transeo_ratbox_messages:svinfo(transeo_utilities:timestamp())),
     {next_state, burst, State};
 
+svinfo({dispatch, #message { command = <<"ERROR">>, parameters = [Error]}}, #state { listener = ListenerPid } = State) ->
+    log(State, error, "Error: ~s", [Error]),
+    transeo_listener:disconnect(ListenerPid),
+    {stop, normal, State};
+
 svinfo({dispatch, _Message}, State) ->
     {stop, normal, State}.
 
