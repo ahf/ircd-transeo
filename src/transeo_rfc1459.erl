@@ -75,39 +75,41 @@ decode_lines(Data, Result) ->
 
 %% @private
 -spec decode_line(Line :: binary()) -> {ok, message()} | {error, term()}.
-decode_line(Data) ->
-    decode_prefix(Data).
+decode_line(Line) ->
+    decode_prefix(Line).
 
 %% @private
 -spec decode_prefix(Data :: binary()) -> {ok, message()} | {error, term()}.
-decode_prefix(<<$:, Data/binary>>) ->
+decode_prefix(<<$:, Data/binary>> = Line) ->
     case binary:split(Data, <<" ">>) of
         [Prefix, Data2] ->
-            decode_command(Prefix, Data2);
+            decode_command(Prefix, Data2, Line);
 
         _Otherwise ->
-            {error, {invalid_data, Data}}
+            {error, {invalid_data, Line}}
     end;
 
-decode_prefix(Data) ->
-    decode_command(undefined, Data).
+decode_prefix(Line) ->
+    decode_command(undefined, Line, Line).
 
 %% @private
--spec decode_command(Prefix :: prefix(), Data :: binary()) -> {ok, message()} | {error, term()}.
-decode_command(Prefix, Data) ->
+-spec decode_command(Prefix :: prefix(), Data :: binary(), Line :: binary()) -> {ok, message()} | {error, term()}.
+decode_command(Prefix, Data, Line) ->
     case binary:split(Data, <<" ">>) of
         [Command, ParameterData] ->
             {ok, #message {
                     prefix = Prefix,
                     command = Command,
-                    parameters = decode_parameters(ParameterData)
+                    parameters = decode_parameters(ParameterData),
+                    raw_line = Line
                 } };
 
         [Command] ->
             {ok, #message {
                     prefix = Prefix,
                     command = Command,
-                    parameters = []
+                    parameters = [],
+                    raw_line = Line
                 } };
 
         _Otherwise ->

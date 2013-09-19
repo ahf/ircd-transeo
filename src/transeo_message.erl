@@ -31,7 +31,7 @@
 -module(transeo_message).
 
 %% API.
--export([new/2, new/3, prefix/1, command/1, parameters/1]).
+-export([new/2, new/3, prefix/1, command/1, parameters/1, raw_line/1]).
 
 %% Types.
 -type message() :: transeo_types:message().
@@ -63,3 +63,8 @@ command(#message { command = Command }) ->
 -spec parameters(Message :: message()) -> [binary()].
 parameters(#message { parameters = Parameters }) ->
     Parameters.
+
+%% @doc Get raw line from a given message.
+-spec raw_line(Message :: message()) -> binary().
+raw_line(#message { raw_line = RawLine }) ->
+    RawLine.

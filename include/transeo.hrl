@@ -27,5 +27,6 @@
 -record(message, {
     prefix = undefined :: transeo_types:prefix(),
     command :: binary(),
-    parameters = [] :: [binary()]
+    parameters = [] :: [binary()],
+    raw_line = undefined :: binary()
 }).
