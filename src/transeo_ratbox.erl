@@ -148,3 +148,13 @@ log(#state { name = Name }, LogLevel, Format, Arguments) ->
 authenticate(Options, Password) ->
     AcceptPassword = proplists:get_value(accept_password, Options),
     AcceptPassword =:= Password.
+
+%% @private
+-spec password(State :: term()) -> string().
+password(#state { options = Options }) ->
+    proplists:get_value(sent_password, Options).
+
+%% @private
+-spec send(State :: term(), Message :: iolist()) -> ok.
+send(#state { listener = Listener }, Message) ->
+    transeo_listener:send(Listener, Message).
