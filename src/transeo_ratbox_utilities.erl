@@ -31,54 +31,54 @@
 -module(transeo_ratbox_utilities).
 
 %% API.
--export([capability_to_atom/1, atom_to_capability/1, decode_capabilities/1, encode_capabilities/1]).
+-export([to_atom/1, atom_to_capability/1, decode_capabilities/1, encode_capabilities/1]).
 
 %% Types.
 -type ratbox_capability() :: transeo_types:ratbox_capability().
 
 %% @doc
 %% Convert a given capability to an atom.
--spec capability_to_atom(Data :: binary()) -> ratbox_capability() | {error, term()}.
-capability_to_atom(X) ->
+-spec to_atom(Data :: binary()) -> ratbox_capability() | {error, term()}.
+to_atom(X) ->
     case X of
         <<"QS">> ->
-            capability_qs;
+            qs;
 
         <<"EX">> ->
-            capability_ex;
+            ex;
 
         <<"CHW">> ->
-            capability_chw;
+            chw;
 
         <<"IE">> ->
-            capability_ie;
+            ie;
 
         <<"GLN">> ->
-            capability_gln;
+            gln;
 
         <<"KNOCK">> ->
-            capability_knock;
+            knock;
 
         <<"ZIP">> ->
-            capability_zip;
+            zip;
 
         <<"TB">> ->
-            capability_tb;
+            tb;
 
         <<"ENCAP">> ->
-            capability_encap;
+            encap;
 
         <<"SERVICES">> ->
-            capability_services;
+            services;
 
         <<"RSFNC">> ->
-            capability_rsfnc;
+            rsfnc;
 
         <<"SAVE">> ->
-            capability_save;
+            save;
 
         <<"SAVETS_100">> ->
-            capability_savets_100;
+            savets_100;
 
         _Otherwise ->
             {error, {unknown_ratbox_capability, X}}
@@ -89,47 +89,47 @@ capability_to_atom(X) ->
 -spec atom_to_capability(ratbox_capability()) -> binary().
 atom_to_capability(X) ->
     case X of
-        capability_qs ->
+        qs ->
             <<"QS">>;
 
-        capability_ex ->
+        ex ->
             <<"EX">>;
 
-        capability_chw ->
+        chw ->
             <<"CHW">>;
 
-        capability_ie ->
+        ie ->
             <<"IE">>;
 
-        capability_gln ->
+        gln ->
             <<"GLN">>;
 
-        capability_knock ->
+        knock ->
             <<"KNOCK">>;
 
-        capability_zip ->
+        zip ->
             <<"ZIP">>;
 
-        capability_tb ->
+        tb ->
             <<"TB">>;
 
-        capability_encap ->
+        encap ->
             <<"ENCAP">>;
 
-        capability_services ->
+        services ->
             <<"SERVICES">>;
 
-        capability_rsfnc ->
+        rsfnc ->
             <<"RSFNC">>;
 
-        capability_save ->
+        save ->
             <<"SAVE">>;
 
-        capability_savets_100 ->
+        savets_100 ->
             <<"SAVETS_100">>;
 
         _Otherwise ->
-            {error, {unknown_ratbox_capability_atom, X}}
+            {error, {unknown_ratbox_atom, X}}
     end.
 
 
@@ -138,7 +138,7 @@ atom_to_capability(X) ->
 -spec decode_capabilities(Data :: binary()) -> [ratbox_capability()].
 decode_capabilities(Data) ->
     Tokens = binary:split(Data, <<" ">>, [global]),
-    lists:map(fun capability_to_atom/1, Tokens).
+    lists:map(fun to_atom/1, Tokens).
 
 %% @doc
 %% Encode a set of capabilities.

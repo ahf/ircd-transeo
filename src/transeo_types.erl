@@ -41,4 +41,4 @@
 
 -type client_configuration() :: [].
 
--type ratbox_capability() :: capability_qs | capability_ex | capability_chw | capability_ie | capability_gln | capability_knock | capability_zip | capability_tb | capability_encap | capability_services | capability_rsfnc | capability_save | capability_savets_100.
+-type ratbox_capability() :: qs | ex | chw | ie | gln | knock | zip | tb | encap | services | rsfnc | save | savets_100.
