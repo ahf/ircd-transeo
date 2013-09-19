@@ -35,7 +35,7 @@
 -export([start_link/3, dispatch/2]).
 
 %% Our `gen_fsm' states.
--export([pass/2, capab/2, server/2, svinfo/2, burst/2]).
+-export([pass/2, capab/2, server/2, svinfo/2, burst/2, normal/2]).
 
 %% Our `gen_fsm' callbacks.
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3, terminate/3, code_change/4]).
@@ -140,10 +140,20 @@ burst({dispatch, #message { command = <<"SJOIN">> }}, State) ->
 burst({dispatch, #message { command = <<"PING">>, parameters = [Sid] }}, State) ->
     log(State, info, "End of Burst"),
     send(State, transeo_ratbox_messages:pong(Sid)),
-    {next_state, burst, State};
+    {next_state, normal, State};
 
 burst({dispatch, _Message}, State) ->
-    {next_state, burst, State}.
+    {stop, normal, State}.
+
+%% @private
+%% Normal state after handshake + burst.
+-spec normal({dispatch, Message :: message()}, State :: term()) -> {next_state, StateName :: atom(), State :: term()} | {stop, Reason :: term(), State :: term()}.
+normal({dispatch, #message { command = <<"PING">>, parameters = [Value] }}, State) ->
+    send(State, transeo_ratbox_messages:pong(Value)),
+    {next_state, normal, State};
+
+normal({dispatch, _Message}, State) ->
+    {next_state, normal, State}.
 
 %% @private
 -spec init([term()]) -> {ok, StateName :: atom(), State :: term()}.
