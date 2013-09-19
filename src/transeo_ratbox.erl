@@ -35,7 +35,7 @@
 -export([start_link/3, dispatch/2]).
 
 %% Our `gen_fsm' states.
--export([pass/2, capab/2, server/2, svinfo/2]).
+-export([pass/2, capab/2, server/2, svinfo/2, burst/2]).
 
 %% Our `gen_fsm' callbacks.
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3, terminate/3, code_change/4]).
@@ -123,10 +123,26 @@ server({dispatch, _Message}, State) ->
 -spec svinfo({dispatch, Message :: message()}, State :: term()) -> {next_state, StateName :: atom(), State :: term()} | {stop, Reason :: term(), State :: term()}.
 svinfo({dispatch, #message { command = <<"SVINFO">> }}, State) ->
     send(State, transeo_ratbox_messages:svinfo(transeo_utilities:timestamp())),
-    {next_state, svinfo, State};
+    {next_state, burst, State};
 
 svinfo({dispatch, _Message}, State) ->
-    {next_state, svinfo, State}.
+    {stop, normal, State}.
+
+%% @private
+%% Burst state.
+-spec burst({dispatch, Message :: message()}, State :: term()) -> {next_state, StateName :: atom(), State :: term()} | {stop, Reason :: term(), State :: term()}.
+burst({dispatch, #message { command = <<"UID">> }}, State) ->
+    {next_state, burst, State};
+
+burst({dispatch, #message { command = <<"SJOIN">> }}, State) ->
+    {next_state, burst, State};
+
+burst({dispatch, #message { command = <<"PING">> }}, State) ->
+    log(State, info, "End of Burst"),
+    {next_state, burst, State};
+
+burst({dispatch, _Message}, State) ->
+    {next_state, burst, State}.
 
 %% @private
 -spec init([term()]) -> {ok, StateName :: atom(), State :: term()}.
