@@ -31,15 +31,15 @@
 -module(transeo_ratbox_utilities).
 
 %% API.
--export([to_atom/1, atom_to_capability/1, decode_capabilities/1, encode_capabilities/1]).
+-export([capability_to_atom/1, atom_to_capability/1, decode_capabilities/1, encode_capabilities/1]).
 
 %% Types.
 -type ratbox_capability() :: transeo_types:ratbox_capability().
 
 %% @doc
 %% Convert a given capability to an atom.
--spec to_atom(Data :: binary()) -> ratbox_capability() | {error, term()}.
-to_atom(X) ->
+-spec capability_to_atom(Data :: binary()) -> ratbox_capability() | {error, term()}.
+capability_to_atom(X) ->
     case X of
         <<"QS">> ->
             qs;
@@ -138,7 +138,7 @@ atom_to_capability(X) ->
 -spec decode_capabilities(Data :: binary()) -> [ratbox_capability()].
 decode_capabilities(Data) ->
     Tokens = binary:split(Data, <<" ">>, [global]),
-    lists:map(fun to_atom/1, Tokens).
+    lists:map(fun capability_to_atom/1, Tokens).
 
 %% @doc
 %% Encode a set of capabilities.
