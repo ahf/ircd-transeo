@@ -98,8 +98,8 @@ pass({dispatch, _Message}, State) ->
 %% The expected IRC message is: "SERVER".
 -spec server({dispatch, Message :: message()}, State :: term()) -> {next_state, StateName :: atom(), State :: term()} | {stop, Reason :: term(), State :: term()}.
 server({dispatch, #message { command = <<"SERVER">>, parameters = [_Hostname, <<"1">>, _Sid, _Description] }}, State) ->
-    send(State, transeo_ircd_messages:server(transeo_config:name(), 1, <<"000X">>, transeo_config:description())),
-    send(State, transeo_ircd_messages:end_of_burst(<<"000X">>)),
+    send(State, transeo_ircd_messages:server(transeo_config:name(), 1, sid(State), transeo_config:description())),
+    send(State, transeo_ircd_messages:end_of_burst(sid(State))),
     {next_state, burst, State};
 
 server({dispatch, _Message}, State) ->
@@ -110,7 +110,7 @@ server({dispatch, _Message}, State) ->
 -spec burst({dispatch, Message :: message()}, State :: term()) -> {next_state, StateName :: atom(), State :: term()} | {stop, Reason :: term(), State :: term()}.
 burst({dispatch, #message { command = <<"EOB">> }}, State) ->
     log(State, info, "End of Burst"),
-    send(State, transeo_ircd_messages:end_of_burst_ack(<<"000X">>)),
+    send(State, transeo_ircd_messages:end_of_burst_ack(sid(State))),
     {next_state, normal, State};
 
 burst({dispatch, #message { command = <<"UNICK">> }}, State) ->
@@ -187,6 +187,11 @@ authenticate(Options, Password) ->
 -spec password(State :: term()) -> string().
 password(#state { options = Options }) ->
     proplists:get_value(sent_password, Options).
+
+%% @private
+-spec sid(State :: term()) -> string().
+sid(#state { options = Options }) ->
+    proplists:get_value(sid, Options).
 
 %% @private
 -spec send(State :: term(), Message :: iolist()) -> ok.

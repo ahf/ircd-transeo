@@ -81,7 +81,7 @@ pass({dispatch, #message { command = <<"PASS">>, parameters = [Password, <<"TS">
     case authenticate(Options, binary_to_list(Password)) of
         true ->
             log(State, info, "Succesfully authenticated"),
-            send(State, transeo_ratbox_messages:pass(password(State), "00X")),
+            send(State, transeo_ratbox_messages:pass(password(State), sid(State))),
             {next_state, capab, State};
 
         false ->
@@ -215,6 +215,11 @@ authenticate(Options, Password) ->
 -spec password(State :: term()) -> string().
 password(#state { options = Options }) ->
     proplists:get_value(sent_password, Options).
+
+%% @private
+-spec sid(State :: term()) -> string().
+sid(#state { options = Options }) ->
+    proplists:get_value(sid, Options).
 
 %% @private
 -spec send(State :: term(), Message :: iolist()) -> ok.
