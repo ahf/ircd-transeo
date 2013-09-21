@@ -32,7 +32,7 @@
 -behaviour(gen_server).
 
 %% API.
--export([start_link/0, name/0, description/0, listeners/0]).
+-export([start_link/0, name/0, description/0, listeners/0, mappings/0]).
 
 %% Our `gen_server' callbacks.
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
@@ -56,6 +56,11 @@ name() ->
 -spec description() -> string().
 description() ->
     call(description).
+
+%% @doc Our SID mappings.
+-spec mappings() -> [atom()].
+mappings() ->
+    call(mappings).
 
 %% @doc Get listener specifications.
 -spec listeners() -> [term()].
