@@ -182,7 +182,7 @@ log(State, LogLevel, Format) ->
 %% @private
 -spec log(State :: term(), LogLevel :: atom(), Format :: string(), Arguments :: [term()]) -> ok.
 log(#state { name = Name }, LogLevel, Format, Arguments) ->
-    lager:log(LogLevel, [{listener, Name}], "~s: " ++ Format, [Name | Arguments]).
+    lager:log(LogLevel, [{transeo_listener, Name}], "~s: " ++ Format, [Name | Arguments]).
 
 %% @private
 -spec decode(Data :: binary(), Options :: proplists:proplist()) -> {ok, [message()], Chunk :: binary()} | {error, term()}.
