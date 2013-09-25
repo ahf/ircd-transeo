@@ -33,14 +33,14 @@
 %% API.
 -export([numeric/0, alphanumeric/0]).
 
--spec numeric() -> integer().
+-spec numeric() -> string().
 numeric() ->
-    random:uniform(10) - 1.
+    [random:uniform(10) - 1 + $0].
 
 -spec alphanumeric() -> string().
 alphanumeric() ->
     Alpha = [random:uniform($z - $a + 1) - 1 + $a],
     Alpha1 = [random:uniform($Z - $A + 1) - 1 + $A],
-    Numeric = [numeric() + $0],
+    Numeric = numeric(),
     AlphaNumeric = [Alpha, Alpha1, Numeric],
     lists:nth(random:uniform(length(AlphaNumeric)), AlphaNumeric).

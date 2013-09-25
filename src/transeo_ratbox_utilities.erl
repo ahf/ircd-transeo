@@ -31,7 +31,7 @@
 -module(transeo_ratbox_utilities).
 
 %% API.
--export([capability_to_atom/1, atom_to_capability/1, decode_capabilities/1, encode_capabilities/1]).
+-export([capability_to_atom/1, atom_to_capability/1, decode_capabilities/1, encode_capabilities/1, create_random_sid/0]).
 
 %% Types.
 -type ratbox_capability() :: transeo_types:ratbox_capability().
@@ -145,3 +145,9 @@ decode_capabilities(Data) ->
 -spec encode_capabilities(Capabilities :: [ratbox_capability()]) -> iolist().
 encode_capabilities(Capabilities) ->
     transeo_utilities:intersperse(<<" ">>, lists:map(fun atom_to_capability/1, Capabilities)).
+
+%% @doc
+%% Create TS6 sid.
+-spec create_random_sid() -> binary().
+create_random_sid() ->
+    iolist_to_binary([transeo_random:numeric(), transeo_random:alphanumeric(), transeo_random:alphanumeric()]).
