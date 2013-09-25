@@ -150,8 +150,8 @@ handle_info({tcp_closed, Socket}, #state { socket = Socket } = State) ->
 handle_info({tcp_error, Socket, Reason}, #state { socket = Socket } = State) ->
     {stop, Reason, State};
 
-handle_info(_Info, State) ->
-    {noreply, State}.
+handle_info(_info, state) ->
+    {noreply, state}.
 
 %% @private
 -spec terminate(Reason :: term(), State :: term()) -> ok.

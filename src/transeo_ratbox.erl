@@ -139,7 +139,7 @@ svinfo({dispatch, _Message}, State) ->
 %% @private
 %% Burst state.
 -spec burst({dispatch, Message :: message()}, State :: term()) -> {next_state, StateName :: atom(), State :: term()} | {stop, Reason :: term(), State :: term()}.
-burst({dispatch, #message { command = <<"UID">> }}, State) ->
+burst({dispatch, #message { command = <<"UID">>, parameters = [Nickname, HopCount, Timestamp, Modes, Username, Hostname, ActualHostname, Id, Realname], prefix = Sid }}, #state { sid_map = SidMap } = State) ->
     {next_state, burst, State};
 
 burst({dispatch, #message { command = <<"SJOIN">> }}, State) ->
