@@ -55,7 +55,10 @@
         listener :: pid(),
 
         %% Capabilities.
-        capabilities = [] :: [ratbox_capability()]
+        capabilities = [] :: [ratbox_capability()],
+
+        %% Sid map.
+        sid_map :: pid()
     }).
 
 -define(SERVER, ?MODULE).
@@ -163,10 +166,12 @@ normal({dispatch, _Message}, State) ->
 %% @private
 -spec init([term()]) -> {ok, StateName :: atom(), State :: term()}.
 init([ListenerPid, Name, Options]) ->
+    {ok, SidMap} = transeo_sid_mapping:start_link(fun transeo_ratbox_utilities:create_unique_sid/0),
     {ok, pass, #state {
             name = Name,
             listener = ListenerPid,
-            options = Options
+            options = Options,
+            sid_map = SidMap
         }}.
 
 %% @private
