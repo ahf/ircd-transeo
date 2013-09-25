@@ -138,7 +138,7 @@ normal({dispatch, _Message}, State) ->
 %% @private
 -spec init([term()]) -> {ok, StateName :: atom(), State :: term()}.
 init([ListenerPid, Name, Options]) ->
-    {ok, SidMap} = transeo_sid_mapping:start_link(fun transeo_ircd_utilities:create_unique_sid/0),
+    {ok, SidMap} = transeo_sid_mapping:start_link(fun transeo_ircd_utilities:create_random_sid/0),
     {ok, pass, #state {
             name = Name,
             listener = ListenerPid,
