@@ -31,7 +31,7 @@
 -module(transeo_types).
 
 %% Types.
--export_type([message/0, prefix/0, client_configuration/0, ratbox_capability/0]).
+-export_type([message/0, prefix/0, client_configuration/0, ratbox_capability/0, sid_source/0]).
 
 -include("transeo.hrl").
 
@@ -42,3 +42,5 @@
 -type client_configuration() :: [].
 
 -type ratbox_capability() :: qs | ex | chw | ie | gln | knock | zip | tb | encap | services | rsfnc | save | savets_100.
+
+-type sid_source() :: {transeo_ratbox, binary()} | {transeo_ircd, binary()}.
