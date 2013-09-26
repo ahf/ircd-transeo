@@ -39,7 +39,7 @@
 %% @doc Parse a given mode into a mode list.
 -spec parse(RawModes :: binary()) -> modelist() | {error, term()}.
 parse(RawModes) ->
-    case binary:split(RawModes, <<" ">>, [global]) of
+    case binary:split(RawModes, <<" ">>, [global, trim]) of
         [Modes | Arguments] ->
             zip(parse_modes(Modes), Arguments);
 
