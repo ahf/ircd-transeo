@@ -139,7 +139,19 @@ svinfo({dispatch, _Message}, State) ->
 %% @private
 %% Burst state.
 -spec burst({dispatch, Message :: message()}, State :: term()) -> {next_state, StateName :: atom(), State :: term()} | {stop, Reason :: term(), State :: term()}.
-burst({dispatch, #message { command = <<"UID">>, parameters = [Nickname, HopCount, Timestamp, Modes, Username, Hostname, ActualHostname, Id, Realname], prefix = Sid }}, #state { sid_map = SidMap } = State) ->
+burst({dispatch, #message { command = <<"UID">>, parameters = [Nickname, HopCount, Timestamp, Modes, Username, Hostname, RealHostname, Id, Realname], prefix = Sid }}, State) ->
+    _NickMessage = #nick_message {
+        nickname = Nickname,
+        source = {transeo_ratbox, Sid},
+        hop_count = transeo_utilities:binary_to_integer(HopCount),
+        timestamp = transeo_utilities:binary_to_integer(Timestamp),
+        modes = Modes,
+        username = Username,
+        hostname = Hostname,
+        real_hostname = RealHostname,
+        id = Id,
+        realname = Realname
+    },
     {next_state, burst, State};
 
 burst({dispatch, #message { command = <<"SJOIN">> }}, State) ->

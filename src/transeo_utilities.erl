@@ -31,7 +31,7 @@
 -module(transeo_utilities).
 
 %% API.
--export([intersperse/2, timestamp/0]).
+-export([intersperse/2, timestamp/0, binary_to_integer/1]).
 
 %% @doc Intersperse element between the elements of the
 %% list.
@@ -50,3 +50,8 @@ intersperse(Element, [X | Rest]) ->
 timestamp() ->
     {MegaSeconds, Seconds, _MicroSeconds} = os:timestamp(),
     MegaSeconds * 1000000 + Seconds.
+
+%% @doc Return an integer of the binary.
+-spec binary_to_integer(Binary :: binary()) -> integer().
+binary_to_integer(Binary) ->
+    list_to_integer(binary_to_list(Binary)).
