@@ -25,30 +25,56 @@
 %%%
 %%% ----------------------------------------------------------------------------
 %%% @author Alexander Færøy <ahf@0x90.dk>
-%%% @doc Data Types.
+%%% @doc IRC Mode Utilities.
 %%% @end
 %%% ----------------------------------------------------------------------------
--module(transeo_types).
+-module(transeo_modes).
+
+%% API.
+-export([parse/1]).
 
 %% Types.
--export_type([message/0, prefix/0, client_configuration/0, ratbox_capability/0, sid_source/0, nick_message/0, mode/0, mode_operator/0, modelist/0]).
+-type modelist() :: transeo_types:modelist().
 
--include("transeo.hrl").
+%% @doc Parse a given mode into a mode list.
+-spec parse(RawModes :: binary()) -> modelist() | {error, term()}.
+parse(RawModes) ->
+    case binary:split(RawModes, <<" ">>, [global]) of
+        [Modes | Arguments] ->
+            zip(parse_modes(Modes), Arguments);
 
--type message() :: #message {}.
+        _Otherwise ->
+            {error, {invalid_input, RawModes}}
+    end.
 
--type prefix() :: undefined | binary().
+%% @private
+parse_modes(Modes) ->
+    parse_modes('+', Modes, []).
 
--type client_configuration() :: [].
+parse_modes(_, <<>>, ResultModes) ->
+    lists:reverse(ResultModes);
 
--type ratbox_capability() :: qs | ex | chw | ie | gln | knock | zip | tb | encap | services | rsfnc | save | savets_100.
+parse_modes(_, <<"+", Modes/binary>>, ResultModes) ->
+    parse_modes('+', Modes, ResultModes);
 
--type sid_source() :: {transeo_ratbox, binary()} | {transeo_ircd, binary()}.
+parse_modes(_, <<"-", Modes/binary>>, ResultModes) ->
+    parse_modes('-', Modes, ResultModes);
 
--type nick_message() :: #nick_message {}.
+parse_modes(Op, <<Mode:8, Modes/binary>>, ResultModes) ->
+    parse_modes(Op, Modes, [{Op, list_to_atom([Mode])} | ResultModes]).
 
--type mode_operator() :: '+' | '-'.
+%% @private
+zip(Modes, Arguments) ->
+    zip(Modes, Arguments, []).
 
--type mode() :: {mode_operator(), atom(), binary()} | {mode_operator(), atom()}.
+zip([], [], Result) ->
+    lists:reverse(Result);
 
--type modelist() :: [mode()].
+zip([Mode | Modes], [], Result) ->
+    zip(Modes, [], [Mode | Result]);
+
+zip([], Arguments, _) ->
+    {error, {insufficient_mode_number, Arguments}};
+
+zip([{Op, Mode} | Modes], [Argument | Arguments], Result) ->
+    zip(Modes, Arguments, [{Op, Mode, Argument} | Result]).
