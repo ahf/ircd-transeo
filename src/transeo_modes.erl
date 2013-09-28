@@ -31,7 +31,7 @@
 -module(transeo_modes).
 
 %% API.
--export([parse/1]).
+-export([parse/1, encode/1]).
 
 %% Types.
 -type modelist() :: transeo_types:modelist().
@@ -46,6 +46,30 @@ parse(RawModes) ->
         _Otherwise ->
             {error, {invalid_input, RawModes}}
     end.
+
+%% @doc Encode a given modelist into the wire format.
+-spec encode(Modes :: modelist()) -> binary().
+encode(Modes) ->
+    encode(Modes, '_', [], []).
+
+%% @private
+encode([{OpAtom, ModeAtom} | Modes], LastOpAtom, Result, Arguments) ->
+    case OpAtom =:= LastOpAtom of
+        true ->
+            encode(Modes, OpAtom, [atom_to_binary(ModeAtom, utf8) | Result], Arguments);
+
+        false ->
+            encode(Modes, OpAtom, [<<(op_to_binary(OpAtom))/binary, (atom_to_binary(ModeAtom, utf8))/binary>> | Result], Arguments)
+    end;
+
+encode([{OpAtom, ModeAtom, Argument} | Modes], LastOp, Result, Arguments) ->
+    encode([{OpAtom, ModeAtom} | Modes], LastOp, Result, [Argument | Arguments]);
+
+encode([], _, Modes, []) ->
+    iolist_to_binary([lists:reverse(Modes)]);
+
+encode([], _, Modes, Arguments) ->
+    iolist_to_binary([lists:reverse(Modes), <<" ">>, transeo_utilities:intersperse(<<" ">>, lists:reverse(Arguments))]).
 
 %% @private
 parse_modes(Modes) ->
@@ -78,3 +102,9 @@ zip([], Arguments, _) ->
 
 zip([{Op, Mode} | Modes], [Argument | Arguments], Result) ->
     zip(Modes, Arguments, [{Op, Mode, Argument} | Result]).
+
+%% @private
+op_to_binary('+') ->
+    <<"+">>;
+op_to_binary('-') ->
+    <<"-">>.
