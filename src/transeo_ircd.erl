@@ -110,9 +110,16 @@ pass({dispatch, _Message}, State) ->
 %% Remote server information.
 %% The expected IRC message is: "SERVER".
 -spec server({dispatch, Message :: message()}, State :: term()) -> {next_state, StateName :: atom(), State :: term()} | {stop, Reason :: term(), State :: term()}.
-server({dispatch, #message { command = <<"SERVER">>, parameters = [_Hostname, <<"1">>, _Sid, _Description] }}, State) ->
+server({dispatch, #message { command = <<"SERVER">>, parameters = [Hostname, HopCount, Sid, Description] }}, State) ->
     send(State, transeo_ircd_messages:server(transeo_config:name(), 1, sid(State), transeo_config:description())),
     send(State, transeo_ircd_messages:end_of_burst(sid(State))),
+
+    dispatch(#server_message {
+        hostname = Hostname,
+        hop_count = transeo_utilities:binary_to_integer(HopCount),
+        source = {?MODULE, Sid},
+        description = Description
+    }),
     {next_state, burst, State};
 
 server({dispatch, _Message}, State) ->

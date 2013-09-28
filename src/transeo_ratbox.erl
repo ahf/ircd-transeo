@@ -43,6 +43,7 @@
 %% Types.
 -type message() :: transeo_types:message().
 -type ratbox_capability() :: transeo_types:ratbox_capability().
+-type sid_source() :: transeo_types:sid_source().
 
 -record(state, {
         %% Same as the name in the listener.
@@ -58,7 +59,10 @@
         capabilities = [] :: [ratbox_capability()],
 
         %% Sid map.
-        sid_map :: pid()
+        sid_map :: pid(),
+
+        %% Our sid.
+        sid :: sid_source()
     }).
 
 -define(SERVER, ?MODULE).
@@ -90,12 +94,12 @@ stop(Pid) ->
 %% yet to authorize itself.
 %% The expected IRC message is: "PASS".
 -spec pass({dispatch, Message :: message()}, State :: term()) -> {next_state, StateName :: atom(), State :: term()} | {stop, Reason :: term(), State :: term()}.
-pass({dispatch, #message { command = <<"PASS">>, parameters = [Password, <<"TS">>, <<"6">>, _Sid] }}, #state { options = Options } = State) ->
+pass({dispatch, #message { command = <<"PASS">>, parameters = [Password, <<"TS">>, <<"6">>, Sid] }}, #state { options = Options } = State) ->
     case authenticate(Options, binary_to_list(Password)) of
         true ->
             log(State, info, "Succesfully authenticated"),
             send(State, transeo_ratbox_messages:pass(password(State), sid(State))),
-            {next_state, capab, State};
+            {next_state, capab, State#state { sid = {?MODULE, Sid} }};
 
         false ->
             log(State, warning, "Authentication failed"),
@@ -123,8 +127,14 @@ capab({dispatch, _Message}, State) ->
 %% Remote server information.
 %% The expected IRC message is: "SERVER".
 -spec server({dispatch, Message :: message()}, State :: term()) -> {next_state, StateName :: atom(), State :: term()} | {stop, Reason :: term(), State :: term()}.
-server({dispatch, #message { command = <<"SERVER">> }}, State) ->
+server({dispatch, #message { command = <<"SERVER">>, parameters = [Hostname, HopCount, Description] }}, #state { sid = SidSource } = State) ->
     send(State, transeo_ratbox_messages:server(transeo_config:name(), 1, transeo_config:description())),
+    dispatch(#server_message {
+        hostname = Hostname,
+        hop_count = transeo_utilities:binary_to_integer(HopCount),
+        source = SidSource,
+        description = Description
+    }),
     {next_state, svinfo, State};
 
 server({dispatch, _Message}, State) ->

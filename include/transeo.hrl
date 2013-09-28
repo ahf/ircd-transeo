@@ -67,3 +67,18 @@
 
 %% Internal message for end-of-burst announcemcents.
 -record(eob_message, {}).
+
+%% Internal message for server announcemcents.
+-record(server_message, {
+        %% Hostname.
+        hostname :: binary(),
+
+        %% Hop count.
+        hop_count :: non_neg_integer(),
+
+        %% Source.
+        source :: transeo_types:sid_source(),
+
+        %% Description.
+        description :: binary()
+    }).
