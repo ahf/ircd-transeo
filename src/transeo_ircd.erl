@@ -138,6 +138,7 @@ normal({dispatch, _Message}, State) ->
 %% @private
 -spec init([term()]) -> {ok, StateName :: atom(), State :: term()}.
 init([ListenerPid, Name, Options]) ->
+    ok = transeo_router:register_peer(self()),
     {ok, SidMap} = transeo_sid_mapping:start_link(fun transeo_ircd_utilities:create_random_sid/0),
     {ok, pass, #state {
             name = Name,
@@ -165,6 +166,7 @@ handle_info(_Info, StateName, State) ->
 %% @private
 -spec terminate(Reason :: term(), StateName :: atom(), State :: term()) -> ok.
 terminate(_Reason, _StateName, _State) ->
+    ok = transeo_router:unregister_peer(self()),
     ok.
 
 %% @private

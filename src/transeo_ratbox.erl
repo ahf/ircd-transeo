@@ -140,18 +140,18 @@ svinfo({dispatch, _Message}, State) ->
 %% Burst state.
 -spec burst({dispatch, Message :: message()}, State :: term()) -> {next_state, StateName :: atom(), State :: term()} | {stop, Reason :: term(), State :: term()}.
 burst({dispatch, #message { command = <<"UID">>, parameters = [Nickname, HopCount, Timestamp, Modes, Username, Hostname, RealHostname, Id, Realname], prefix = Sid }}, State) ->
-    _NickMessage = #nick_message {
+    transeo_router:dispatch(#nick_message {
         nickname = Nickname,
-        source = {transeo_ratbox, Sid},
+        source = {?MODULE, Sid},
         hop_count = transeo_utilities:binary_to_integer(HopCount),
         timestamp = transeo_utilities:binary_to_integer(Timestamp),
-        modes = Modes,
+        modes = transeo_modes:parse(Modes),
         username = Username,
         hostname = Hostname,
         real_hostname = RealHostname,
         id = Id,
         realname = Realname
-    },
+    }),
     {next_state, burst, State};
 
 burst({dispatch, #message { command = <<"SJOIN">> }}, State) ->
@@ -178,6 +178,7 @@ normal({dispatch, _Message}, State) ->
 %% @private
 -spec init([term()]) -> {ok, StateName :: atom(), State :: term()}.
 init([ListenerPid, Name, Options]) ->
+    ok = transeo_router:register_peer(self()),
     {ok, SidMap} = transeo_sid_mapping:start_link(fun transeo_ratbox_utilities:create_random_sid/0),
     {ok, pass, #state {
             name = Name,
@@ -205,6 +206,7 @@ handle_info(_Info, StateName, State) ->
 %% @private
 -spec terminate(Reason :: term(), StateName :: atom(), State :: term()) -> ok.
 terminate(_Reason, _StateName, _State) ->
+    ok = transeo_router:unregister_peer(self()),
     ok.
 
 %% @private
