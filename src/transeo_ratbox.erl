@@ -170,6 +170,7 @@ burst({dispatch, #message { command = <<"SJOIN">> }}, State) ->
 burst({dispatch, #message { command = <<"PING">>, parameters = [Sid] }}, State) ->
     log(State, info, "End of Burst"),
     send(State, transeo_ratbox_messages:pong(Sid)),
+    dispatch(#eob_message {}),
     {next_state, normal, State};
 
 burst({dispatch, _Message}, State) ->

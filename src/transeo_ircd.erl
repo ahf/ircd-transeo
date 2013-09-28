@@ -124,6 +124,7 @@ server({dispatch, _Message}, State) ->
 burst({dispatch, #message { command = <<"EOB">> }}, State) ->
     log(State, info, "End of Burst"),
     send(State, transeo_ircd_messages:end_of_burst_ack(sid(State))),
+    dispatch(#eob_message {}),
     {next_state, normal, State};
 
 burst({dispatch, #message { command = <<"UNICK">> }}, State) ->
@@ -221,3 +222,8 @@ sid(#state { options = Options }) ->
 -spec send(State :: term(), Message :: iolist()) -> ok.
 send(#state { listener = Listener }, Message) ->
     transeo_listener:send(Listener, Message).
+
+%% @private
+-spec dispatch(Message :: message()) -> ok.
+dispatch(Message) ->
+    transeo_router:dispatch({?MODULE, self()}, Message).

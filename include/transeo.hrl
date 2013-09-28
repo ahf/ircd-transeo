@@ -64,3 +64,6 @@
         %% Realname.
         realname :: binary()
     }).
+
+%% Internal message for end-of-burst announcemcents.
+-record(eob_message, {}).
