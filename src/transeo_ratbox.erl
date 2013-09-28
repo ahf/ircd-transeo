@@ -32,7 +32,7 @@
 -behaviour(gen_fsm).
 
 %% API.
--export([start_link/3, dispatch/2, broadcast/2]).
+-export([start_link/3, dispatch/2, broadcast/2, stop/1]).
 
 %% Our `gen_fsm' states.
 -export([pass/2, capab/2, server/2, svinfo/2, burst/2, normal/2]).
@@ -79,6 +79,11 @@ dispatch(Pid, Message) ->
 -spec broadcast(Pid :: pid(), Message :: message()) -> ok.
 broadcast(Pid, Message) ->
     gen_fsm:send_all_state_event(Pid, {broadcast, Message}).
+
+%% @doc Stop our FSM.
+-spec stop(Pid :: pid()) -> ok.
+stop(Pid) ->
+    gen_fsm:send_all_state_event(Pid, {stop}).
 
 %% @private
 %% This state represents the initial state whereby the connecting server have
@@ -197,6 +202,9 @@ init([ListenerPid, Name, Options]) ->
 handle_event({broadcast, Message}, StateName, State) ->
     log(State, info, "Broadcast: ~p", [Message]),
     {next_state, StateName, State};
+
+handle_event({stop}, _StateName, State) ->
+    {stop, normal, State};
 
 handle_event(_Event, StateName, State) ->
     {next_state, StateName, State}.

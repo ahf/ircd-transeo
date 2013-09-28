@@ -155,7 +155,8 @@ handle_info(_info, state) ->
 
 %% @private
 -spec terminate(Reason :: term(), State :: term()) -> ok.
-terminate(_Reason, _State) ->
+terminate(_Reason, State) ->
+    ok = stop_fsm(State),
     ok.
 
 %% @private
@@ -201,3 +202,9 @@ create_protocol_fsm(Name, Options) ->
 dispatch(Message, #state { protocol_fsm = ProtocolFSM, options = Options }) ->
     Protocol = proplists:get_value(protocol, Options),
     apply(Protocol, dispatch, [ProtocolFSM, Message]).
+
+%% @private
+-spec stop_fsm(State :: term()) -> ok.
+stop_fsm(#state { protocol_fsm = ProtocolFSM, options = Options }) ->
+    Protocol = proplists:get_value(protocol, Options),
+    apply(Protocol, stop, [ProtocolFSM]).

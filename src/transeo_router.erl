@@ -93,7 +93,7 @@ handle_cast({register_peer, Peer}, #state { peers = Peers } = State) ->
 
 handle_cast({unregister_peer, Peer}, #state { peers = Peers } = State) ->
     lager:info("Router: Unregistering peer: ~p", [Peer]),
-    {noreply, State#state { peers = [Peers] -- [Peer] }};
+    {noreply, State#state { peers = Peers -- [Peer] }};
 
 handle_cast(_Request, State) ->
     {noreply, State}.
