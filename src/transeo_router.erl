@@ -82,8 +82,9 @@ handle_call(_Request, _From, State) ->
 
 %% @private
 -spec handle_cast(Request :: term(), State :: term()) -> {noreply, NewState :: term()}.
-handle_cast({dispatch, Peer, Message}, State) ->
+handle_cast({dispatch, Peer, Message}, #state { peers = Peers } = State) ->
     lager:notice("Router: ~p from ~p", [Message, Peer]),
+    broadcast(Peers -- [Peer], Message),
     {noreply, State};
 
 handle_cast({register_peer, Peer}, #state { peers = Peers } = State) ->
@@ -111,3 +112,10 @@ terminate(_Reason, _State) ->
 -spec code_change(OldVersion :: term(), State :: term(), Extra :: term()) -> {ok, NewState :: term()}.
 code_change(_OldVersion, State, _Extra) ->
     {ok, State}.
+
+%% @private
+-spec broadcast(Peers :: [peer()], Message :: message()) -> ok.
+broadcast(Peers, Message) ->
+    lists:foreach(fun ({PeerType, PeerPid}) ->
+                apply(PeerType, broadcast, [PeerPid, Message])
+        end, Peers).

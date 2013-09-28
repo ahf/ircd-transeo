@@ -32,7 +32,7 @@
 -behaviour(gen_fsm).
 
 %% API.
--export([start_link/3, dispatch/2]).
+-export([start_link/3, dispatch/2, broadcast/2]).
 
 %% Our `gen_fsm' states.
 -export([pass/2, server/2, burst/2, normal/2]).
@@ -76,6 +76,11 @@ start_link(ListenerPid, Name, Options) ->
 -spec dispatch(Pid :: pid(), Message :: message()) -> ok.
 dispatch(Pid, Message) ->
     gen_fsm:send_event(Pid, {dispatch, Message}).
+
+%% @doc Used by the router to sent broadcast from other servers to our FSM.
+-spec broadcast(Pid :: pid(), Message :: message()) -> ok.
+broadcast(Pid, Message) ->
+    gen_fsm:send_all_state_event(Pid, {broadcast, Message}).
 
 %% @private
 %% This state represents the initial state whereby the connecting server have
@@ -149,6 +154,10 @@ init([ListenerPid, Name, Options]) ->
 
 %% @private
 -spec handle_event(Event :: term(), StateName :: atom(), State :: term()) -> {next_state, StateName :: atom(), State :: term()} | {stop, Reason :: term(), State :: term()}.
+handle_event({broadcast, Message}, StateName, State) ->
+    log(State, info, "Broadcast: ~p", [Message]),
+    {next_state, StateName, State};
+
 handle_event(_Event, StateName, State) ->
     {next_state, StateName, State}.
 
