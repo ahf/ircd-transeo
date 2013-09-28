@@ -32,16 +32,17 @@
 -behaviour(gen_server).
 
 %% API.
--export([start_link/0, register_peer/1, unregister_peer/1, dispatch/1]).
+-export([start_link/0, register_peer/1, unregister_peer/1, dispatch/2]).
 
 %% Our `gen_server' callbacks.
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 %% Types.
 -type message() :: transeo_types:message().
+-type peer() :: transeo_types:peer().
 
 -record(state, {
-        peers = [] :: [pid()]
+        peers = [] :: [peer()]
     }).
 
 -define(SERVER, ?MODULE).
@@ -54,17 +55,17 @@ start_link() ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
 %% @doc Dispatch message to router.
--spec dispatch(Message :: message()) -> ok.
-dispatch(Message) ->
-    gen_server:cast(?SERVER, {dispatch, Message}).
+-spec dispatch(Self :: peer(), Message :: message()) -> ok.
+dispatch(Self, Message) ->
+    gen_server:cast(?SERVER, {dispatch, Self, Message}).
 
 %% @doc Register peer to router.
--spec register_peer(Peer :: pid()) -> ok.
+-spec register_peer(Peer :: peer()) -> ok.
 register_peer(Peer) ->
     gen_server:cast(?SERVER, {register_peer, Peer}).
 
 %% @doc Unregister peer to router.
--spec unregister_peer(Peer :: pid()) -> ok.
+-spec unregister_peer(Peer :: peer()) -> ok.
 unregister_peer(Peer) ->
     gen_server:cast(?SERVER, {unregister_peer, Peer}).
 
@@ -81,8 +82,8 @@ handle_call(_Request, _From, State) ->
 
 %% @private
 -spec handle_cast(Request :: term(), State :: term()) -> {noreply, NewState :: term()}.
-handle_cast({dispatch, Message}, State) ->
-    lager:notice("Router: ~p", [Message]),
+handle_cast({dispatch, Peer, Message}, State) ->
+    lager:notice("Router: ~p from ~p", [Message, Peer]),
     {noreply, State};
 
 handle_cast({register_peer, Peer}, #state { peers = Peers } = State) ->

@@ -140,7 +140,7 @@ svinfo({dispatch, _Message}, State) ->
 %% Burst state.
 -spec burst({dispatch, Message :: message()}, State :: term()) -> {next_state, StateName :: atom(), State :: term()} | {stop, Reason :: term(), State :: term()}.
 burst({dispatch, #message { command = <<"UID">>, parameters = [Nickname, HopCount, Timestamp, Modes, Username, Hostname, RealHostname, Id, Realname], prefix = Sid }}, State) ->
-    transeo_router:dispatch(#nick_message {
+    dispatch(#nick_message {
         nickname = Nickname,
         source = {?MODULE, Sid},
         hop_count = transeo_utilities:binary_to_integer(HopCount),
@@ -178,7 +178,7 @@ normal({dispatch, _Message}, State) ->
 %% @private
 -spec init([term()]) -> {ok, StateName :: atom(), State :: term()}.
 init([ListenerPid, Name, Options]) ->
-    ok = transeo_router:register_peer(self()),
+    ok = transeo_router:register_peer({?MODULE, self()}),
     {ok, SidMap} = transeo_sid_mapping:start_link(fun transeo_ratbox_utilities:create_random_sid/0),
     {ok, pass, #state {
             name = Name,
@@ -206,7 +206,7 @@ handle_info(_Info, StateName, State) ->
 %% @private
 -spec terminate(Reason :: term(), StateName :: atom(), State :: term()) -> ok.
 terminate(_Reason, _StateName, _State) ->
-    ok = transeo_router:unregister_peer(self()),
+    ok = transeo_router:unregister_peer({?MODULE, self()}),
     ok.
 
 %% @private
@@ -244,3 +244,8 @@ sid(#state { options = Options }) ->
 -spec send(State :: term(), Message :: iolist()) -> ok.
 send(#state { listener = Listener }, Message) ->
     transeo_listener:send(Listener, Message).
+
+%% @private
+-spec dispatch(Message :: message()) -> ok.
+dispatch(Message) ->
+    transeo_router:dispatch({?MODULE, self()}, Message).
