@@ -168,7 +168,7 @@ init([ListenerPid, Name, Options]) ->
 %% @private
 -spec handle_event(Event :: term(), StateName :: atom(), State :: term()) -> {next_state, StateName :: atom(), State :: term()} | {stop, Reason :: term(), State :: term()}.
 handle_event({broadcast, Message}, StateName, State) ->
-    log(State, info, "Broadcast: ~p", [Message]),
+    log(State, info, "Unhandled Broadcast: ~p", [Message]),
     {next_state, StateName, State};
 
 handle_event({stop}, _StateName, State) ->
