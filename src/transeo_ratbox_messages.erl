@@ -31,7 +31,7 @@
 -module(transeo_ratbox_messages).
 
 %% API.
--export([pass/2, capab/1, server/3, svinfo/1, ping/1, pong/1]).
+-export([pass/2, capab/1, server/3, sid/4, svinfo/1, ping/1, pong/1]).
 
 %% Types.
 -type ratbox_capability() :: transeo_types:ratbox_capability().
@@ -58,6 +58,12 @@ server(Hostname, HopCount, Description) ->
     io_lib:format("SERVER ~s ~b :~s", [Hostname, HopCount, Description]).
 
 %% @doc
+%% Create SID message.
+-spec sid(Hostname :: string(), HopCount :: integer(), Sid :: binary(), Description :: string()) -> iolist().
+sid(Hostname, HopCount, Sid, Description) ->
+    io_lib:format("SID ~s ~b ~s :~s", [Hostname, HopCount, Sid, Description]).
+
+%% @doc
 %% Create SVINFO message.
 -spec svinfo(Timestamp :: non_neg_integer()) -> iolist().
 svinfo(Timestamp) ->
@@ -74,3 +80,8 @@ ping(Data) ->
 -spec pong(Data :: string()) -> iolist().
 pong(Data) ->
     io_lib:format("PONG :~s", [Data]).
+
+%% @private
+-spec prefix(Prefix :: binary(), Rest :: iolist()) -> iolist().
+prefix(Prefix, Rest) ->
+    [<<$:, Prefix/binary, " ">>, Rest].

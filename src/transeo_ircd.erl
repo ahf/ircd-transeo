@@ -42,6 +42,7 @@
 
 %% Types.
 -type message() :: transeo_types:message().
+-type sid_source() :: transeo_types:sid_source().
 
 -record(state, {
         %% Same as the name in the listener.
@@ -167,6 +168,10 @@ init([ListenerPid, Name, Options]) ->
 
 %% @private
 -spec handle_event(Event :: term(), StateName :: atom(), State :: term()) -> {next_state, StateName :: atom(), State :: term()} | {stop, Reason :: term(), State :: term()}.
+handle_event({broadcast, #server_message { hostname = Hostname, hop_count = HopCount, source = Source, description = Description }}, StateName, State) ->
+    send(State, transeo_ircd_messages:server(sid(State), Hostname, HopCount + 1, map_sid(State, Source), Description)),
+    {next_state, StateName, State};
+
 handle_event({broadcast, Message}, StateName, State) ->
     log(State, info, "Unhandled Broadcast: ~p", [Message]),
     {next_state, StateName, State};
@@ -223,7 +228,7 @@ password(#state { options = Options }) ->
 %% @private
 -spec sid(State :: term()) -> string().
 sid(#state { options = Options }) ->
-    proplists:get_value(sid, Options).
+    list_to_binary(proplists:get_value(sid, Options)).
 
 %% @private
 -spec send(State :: term(), Message :: iolist()) -> ok.
@@ -234,3 +239,8 @@ send(#state { listener = Listener }, Message) ->
 -spec dispatch(Message :: message()) -> ok.
 dispatch(Message) ->
     transeo_router:dispatch({?MODULE, self()}, Message).
+
+%% @private
+-spec map_sid(State :: term(), Source :: sid_source()) -> binary().
+map_sid(#state { sid_map = SidMap }, Source) ->
+    transeo_sid_mapping:from_source(SidMap, Source).

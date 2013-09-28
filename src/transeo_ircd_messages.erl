@@ -31,7 +31,7 @@
 -module(transeo_ircd_messages).
 
 %% API.
--export([pass/3, server/4, end_of_burst/1, end_of_burst_ack/1]).
+-export([pass/3, server/4, server/5, end_of_burst/1, end_of_burst_ack/1]).
 
 %% @doc
 %% Create PASS message.
@@ -45,6 +45,10 @@ pass(Password, Version, Flags) ->
 server(Hostname, HopCount, Sid, Description) ->
     io_lib:format("SERVER ~s ~b ~s :~s", [Hostname, HopCount, Sid, Description]).
 
+-spec server(Prefix :: binary(), Hostname :: string(), HopCount :: non_neg_integer(), Sid :: binary(), Description :: string()) -> iolist().
+server(Prefix, Hostname, HopCount, Sid, Description) ->
+    io_lib:format(":~s SERVER ~s ~b ~s 0211020003 :~s", [Prefix, Hostname, HopCount, Sid, Description]).
+
 %% @doc
 %% Create EOB message.
 -spec end_of_burst(Sid :: string()) -> iolist().
@@ -55,3 +59,9 @@ end_of_burst(Sid) ->
 -spec end_of_burst_ack(Sid :: string()) -> iolist().
 end_of_burst_ack(Sid) ->
     io_lib:format(":~s EOBACK", [Sid]).
+
+%% @private
+-spec prefix(Prefix :: binary(), Rest :: iolist()) -> iolist().
+prefix(Prefix, Rest) ->
+    [<<$:, Prefix/binary, " ">>, Rest].
+
