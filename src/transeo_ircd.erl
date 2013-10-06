@@ -96,6 +96,7 @@ stop(Pid) ->
 pass({dispatch, #message { command = <<"PASS">>, parameters = [Password, Version, Flags, <<"P">>] }}, #state { options = Options } = State) ->
     case authenticate(Options, binary_to_list(Password)) of
         true ->
+            log(State, info, "Authentication successful"),
             send(State, transeo_ircd_messages:pass(password(State), Version, Flags)),
             {next_state, server, State#state { version = Version, flags = Flags }};
 
